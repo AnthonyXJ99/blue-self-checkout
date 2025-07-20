@@ -1,0 +1,214 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nueva Imagen"  icon="pi pi-plus" severity="secondary"   class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedImages()" [disabled]="!selectedImages() || !selectedImages()!.length" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="dt.exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="images()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['imageTitle', 'description', 'tags', 'imageType']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedImages"
+    [rowHover]="true"
+    dataKey="imageCode"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} imágenes"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Galería de Imágenes</h5>
+            <div class="flex items-center gap-2">
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-filter" />
+                    <p-select 
+                        [options]="imageTypes" 
+                        [(ngModel)]="selectedImageType"
+                        (onChange)="onImageTypeFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos los tipos"
+                        variant="filled"
+                        [style]="{ width: '200px' }">
+                    </p-select>
+                </p-iconfield>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th style="min-width: 12rem">Imagen</th>
+            <th pSortableColumn="imageTitle" style="min-width:16rem">
+                Título
+                <p-sortIcon field="imageTitle" />
+            </th>
+            <th pSortableColumn="imageType" style="min-width: 12rem">
+                Tipo
+                <p-sortIcon field="imageType" />
+            </th>
+            <th pSortableColumn="description" style="min-width: 20rem">
+                Descripción
+                <p-sortIcon field="description" />
+            </th>
+            <th style="min-width: 10rem">Tags</th>
+           
+            <th pSortableColumn="isActive" style="min-width: 10rem">
+                Estado
+                <p-sortIcon field="isActive" />
+            </th>
+            <th pSortableColumn="createdAt" style="min-width: 12rem">
+                Fecha Creación
+                <p-sortIcon field="createdAt" />
+            </th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    
+    <ng-template pTemplate="body" let-image>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="image" />
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-column items-center">
+                    <img [src]="image.publicUrl" [alt]="image.imageTitle" style="width: 80px; height: 80px; object-fit: cover;" class="rounded mb-2" />
+                    
+                </div>
+            </td>
+            <td style="min-width: 16rem">
+                <div class="flex flex-column">
+                    <span class="font-semibold">{{ image.imageTitle }}</span>
+                </div>
+            </td>
+            <td>
+                <p-tag [value]="image.imageType" severity="info" />
+            </td>
+            <td style="min-width: 20rem">{{ image.description }}</td>
+            <td style="min-width: 10rem">
+                <div class="flex flex-wrap gap-1">
+                    <span *ngFor="let tag of image.tags.split(' ')" class="px-2 py-1 bg-surface-100 dark:bg-surface-700 rounded text-xs">
+                        {{ tag }}
+                    </span>
+                </div>
+            </td>
+           
+            <td>
+                <p-tag [value]="getActiveLabel(image.isActive)" [severity]="getSeverity(image.isActive)" />
+            </td>
+            <td>{{ image.createdAt | date:'short' }}</td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editImage(image)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteImage(image)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="imageDialog" [style]="{ width: '490px' }" header="Detalles de Imagen" [modal]="true" (onHide)="hideDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="image()">
+            <!-- Vista previa de imagen -->
+            <div class="flex justify-center" *ngIf="image()!.publicUrl">
+                <img [src]="image()!.publicUrl || 'https://via.placeholder.com/300x200'" [alt]="image()!.imageTitle" class="block m-auto pb-4" style="width: 300px; height: 200px; object-fit: cover;" />
+            </div>
+            
+            <!-- Título de imagen -->
+            <div>
+                <label for="imageTitle" class="block font-bold mb-3">Título de Imagen *</label>
+                <input type="text" pInputText id="imageTitle" [(ngModel)]="image()!.imageTitle" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted() && !image()!.imageTitle">El título es requerido.</small>
+            </div>
+            
+            <!-- Tipo de imagen -->
+            <div>
+                <label for="imageType" class="block font-bold mb-3">Tipo de Imagen *</label>
+                <p-dropdown 
+                    id="imageType"
+                    [options]="imageTypes" 
+                    [(ngModel)]="image()!.imageType"
+                    optionLabel="label" 
+                    optionValue="value"
+                    placeholder="Seleccionar tipo"
+                    fluid>
+                </p-dropdown>
+                <small class="text-red-500" *ngIf="submitted() && !image()!.imageType">El tipo es requerido.</small>
+            </div>
+            
+            <!-- Descripción -->
+            <div>
+                <label for="description" class="block font-bold mb-3">Descripción</label>
+                <textarea id="description" pTextarea [(ngModel)]="image()!.description" rows="3" cols="20" fluid></textarea>
+            </div>
+
+            <!-- Tags -->
+            <div>
+                <label for="tags" class="block font-bold mb-3">Tags</label>
+                <input type="text" pInputText id="tags" [(ngModel)]="image()!.tags" placeholder="Separar tags con espacios" fluid />
+                <small class="text-muted-color">Ejemplo: logo empresa principal</small>
+            </div>
+
+            <!-- Carga de archivo -->
+            <div>
+                <label class="block font-bold mb-3">Subir Imagen</label>
+                <p-fileupload 
+                    mode="basic" 
+                    name="image" 
+                    accept="image/*" 
+                    [maxFileSize]="10000000"
+                    chooseLabel="Seleccionar Imagen"
+                    (onSelect)="onFileUpload($event)"
+                    [auto]="true"
+                    customUpload="true">
+                </p-fileupload>
+                <small class="text-muted-color">Formatos: JPG, PNG, GIF. Máximo 10MB</small>
+            </div>
+
+            <!-- Información del archivo -->
+            <div *ngIf="image()!.originalFileName" class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-2">Información del Archivo</h6>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="font-medium">Nombre original:</span>
+                        <span class="ml-2">{{ image()!.originalFileName }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Tamaño:</span>
+                        <span class="ml-2">{{ getFileSize(image()!.fileSize) }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Tipo:</span>
+                        <span class="ml-2">{{ image()!.contentType }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Código:</span>
+                        <span class="ml-2">{{ image()!.imageCode || 'Se generará automáticamente' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveImage()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }"  acceptLabel="Si" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

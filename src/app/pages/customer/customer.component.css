@@ -1,0 +1,227 @@
+/* Estilos para el componente Customer */
+:host {
+  display: block;
+  height: 100%;
+}
+
+/* Estilos para las tarjetas */
+.p-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.p-card .p-card-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Estilos para las tablas */
+.p-datatable {
+  height: 100%;
+}
+
+.p-datatable .p-datatable-wrapper {
+  height: calc(100% - 60px);
+  overflow: auto;
+}
+
+/* Estilos para los filtros */
+.p-toolbar {
+  padding: 0.5rem;
+  background: transparent;
+}
+
+/* Estilos para los botones de acción */
+.p-button.p-button-icon-only {
+  margin: 0 0.25rem;
+}
+
+/* Estilos para los tags */
+.p-tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Estilos para los diálogos */
+.p-dialog .p-dialog-content {
+  padding: 1.5rem;
+}
+
+.p-dialog .p-dialog-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+/* Estilos para los formularios */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.form-group input,
+.form-group .p-dropdown {
+  width: 100%;
+}
+
+/* Estilos para los tabs */
+.p-tabview {
+  height: 100%;
+}
+
+.p-tabview .p-tabview-panels {
+  height: calc(100% - 60px);
+  overflow: hidden;
+}
+
+.p-tabview .p-tabview-panel {
+  height: 100%;
+  padding: 1rem;
+}
+
+/* Estilos para el contenido de contacto */
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contact-info small {
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+}
+
+/* Estilos para los códigos */
+.code-display {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Estilos para los estados */
+.status-enabled {
+  color: var(--green-500);
+}
+
+.status-disabled {
+  color: var(--red-500);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .p-tabview .p-tabview-panel {
+    padding: 0.5rem;
+  }
+  
+  .p-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .p-toolbar .p-toolbar-group-start,
+  .p-toolbar .p-toolbar-group-end {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Estilos para el splitter (si se decide usar en el futuro) */
+.p-splitter {
+  height: 100%;
+}
+
+.p-splitter .p-splitter-panel {
+  overflow: hidden;
+}
+
+/* Estilos para los mensajes de error */
+.error-message {
+  color: var(--red-500);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Estilos para los placeholders */
+.p-inputtext::placeholder {
+  color: var(--text-color-secondary);
+  opacity: 0.7;
+}
+
+/* Estilos para los iconos en los botones */
+.p-button .p-button-icon {
+  font-size: 0.875rem;
+}
+
+/* Estilos para el hover en las filas de tabla */
+.p-datatable .p-datatable-tbody > tr:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Estilos para los checkboxes */
+.p-checkbox .p-checkbox-box {
+  border-radius: 4px;
+}
+
+/* Estilos para los headers de tabla */
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: var(--surface-section);
+  border-bottom: 1px solid var(--surface-border);
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* Estilos para el paginador */
+.p-paginator {
+  background-color: var(--surface-section);
+  border-top: 1px solid var(--surface-border);
+}
+
+/* Estilos para los filtros de estado */
+.status-filter {
+  min-width: 150px;
+}
+
+.group-filter {
+  min-width: 180px;
+}
+
+/* Estilos para los botones de exportar */
+.export-button {
+  background-color: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+}
+
+.export-button:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Estilos para los botones de eliminar */
+.delete-button {
+  background-color: var(--red-500);
+  border-color: var(--red-500);
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: var(--red-600);
+  border-color: var(--red-600);
+}
+
+/* Estilos para los botones de editar */
+.edit-button {
+  background-color: var(--blue-500);
+  border-color: var(--blue-500);
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: var(--blue-600);
+  border-color: var(--blue-600);
+}

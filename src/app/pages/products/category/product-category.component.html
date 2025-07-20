@@ -1,0 +1,309 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nueva Categoría" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedCategories()" [disabled]="!selectedCategories() || !selectedCategories().length" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="categories()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['categoryItemCode', 'categoryItemName', 'frgnName', 'description']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedCategories"
+    [rowHover]="true"
+    dataKey="categoryItemCode"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} categorías"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Categorías de Productos</h5>
+            <div class="flex items-center gap-2">
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-filter" />
+                    <p-select 
+                        [options]="getGroupFilterOptions()" 
+                        [(ngModel)]="selectedGroupFilter"
+                        (onChange)="onGroupFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Filtrar por grupo"
+                        variant="filled"
+                        [style]="{ width: '200px' }">
+                    </p-select>
+                </p-iconfield>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-filter" />
+                    <p-select 
+                        [options]="statusOptions" 
+                        [(ngModel)]="selectedStatusFilter"
+                        (onChange)="onStatusFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Filtrar por estado"
+                        variant="filled"
+                        [style]="{ width: '150px' }">
+                    </p-select>
+                </p-iconfield>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="categoryItemCode" style="min-width: 12rem">
+                Código
+                <p-sortIcon field="categoryItemCode" />
+            </th>
+            <th pSortableColumn="categoryItemName" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="categoryItemName" />
+            </th>
+            <th pSortableColumn="frgnName" style="min-width: 16rem">
+                Nombre Extranjero
+                <p-sortIcon field="frgnName" />
+            </th>
+            <th style="min-width: 8rem">Imagen</th>
+            <th pSortableColumn="description" style="min-width: 20rem">
+                Descripción
+                <p-sortIcon field="description" />
+            </th>
+            <th style="min-width: 12rem">Grupo</th>
+            <th pSortableColumn="enabled" style="min-width: 8rem">
+                Estado
+                <p-sortIcon field="enabled" />
+            </th>
+            <th pSortableColumn="visOrder" style="min-width: 8rem">
+                Orden
+                <p-sortIcon field="visOrder" />
+            </th>
+            <th style="min-width: 10rem"></th>
+        </tr>
+    </ng-template>
+    
+    <ng-template pTemplate="body" let-category>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="category" />
+            </td>
+            <td style="min-width: 12rem">
+                <span class="font-semibold">{{ category.categoryItemCode }}</span>
+            </td>
+            <td style="min-width: 16rem">
+                <div class="flex flex-column">
+                    <span class="font-semibold">{{ category.categoryItemName }}</span>
+                    <div class="text-sm text-muted-color" *ngIf="category.frgnDescription">
+                        {{ category.frgnDescription }}
+                    </div>
+                </div>
+            </td>
+            <td style="min-width: 16rem">{{ category.frgnName || '-' }}</td>
+            <td>
+                <div class="flex justify-center">
+                    <img *ngIf="category.imageUrl" 
+                         [src]="category.imageUrl" 
+                         [alt]="category.categoryItemName" 
+                         class="rounded border" 
+                         style="width: 48px; height: 48px; object-fit: cover;" 
+                         [title]="category.categoryItemName" />
+                    <div *ngIf="!category.imageUrl" 
+                         class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded border flex items-center justify-center">
+                        <i class="pi pi-image text-muted-color"></i>
+                    </div>
+                </div>
+            </td>
+            <td style="min-width: 20rem">
+                <div class="max-w-xs truncate" [title]="category.description">
+                    {{ category.description || '-' }}
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <p-tag [value]="getProductGroupName(category.groupItemCode || '')" 
+                       severity="info" 
+                       *ngIf="category.groupItemCode" />
+                <span class="text-muted-color text-sm" *ngIf="!category.groupItemCode">Sin grupo</span>
+            </td>
+            <td style="min-width: 8rem">
+                <p-tag [value]="getEnabledLabel(category.enabled)" [severity]="getEnabledSeverity(category.enabled)" />
+            </td>
+            <td style="min-width: 8rem">
+                <span class="inline-flex items-center justify-center w-8 h-8 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-full text-sm font-semibold">
+                    {{ category.visOrder }}
+                </span>
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editCategory(category)" 
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deleteCategory(category)" 
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="categoryDialog" [style]="{ width: '700px' }" header="Detalles de la Categoría" [modal]="true" (onHide)="hideDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="category()">
+            <!-- Información básica -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="categoryItemCode" class="block font-bold mb-3">Código *</label>
+                    <input type="text" pInputText id="categoryItemCode" [(ngModel)]="category()!.categoryItemCode" required autofocus fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !category()!.categoryItemCode">El código es requerido.</small>
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+                <div>
+                    <label for="visOrder" class="block font-bold mb-3">Orden *</label>
+                    <p-inputnumber id="visOrder" [(ngModel)]="category()!.visOrder" [minFractionDigits]="0" [maxFractionDigits]="0" [min]="1" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !category()!.visOrder">El orden es requerido.</small>
+                </div>
+            </div>
+
+            <!-- Nombres -->
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="categoryItemName" class="block font-bold mb-3">Nombre *</label>
+                    <input type="text" pInputText id="categoryItemName" [(ngModel)]="category()!.categoryItemName" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !category()!.categoryItemName">El nombre es requerido.</small>
+                    <small class="text-muted-color">Máximo 150 caracteres</small>
+                </div>
+                <div>
+                    <label for="frgnName" class="block font-bold mb-3">Nombre Extranjero</label>
+                    <input type="text" pInputText id="frgnName" [(ngModel)]="category()!.frgnName" fluid />
+                    <small class="text-muted-color">Máximo 150 caracteres</small>
+                </div>
+            </div>
+
+            <!-- Imagen con ImageSelector -->
+            <div>
+                <app-image-selector
+                    label="Imagen de la Categoría"
+                    [selectedImageUrl]="category()!.imageUrl || ''"
+                    [selectedImageTitle]="category()!.categoryItemName || 'Imagen de la categoría'"
+                    (imageSelected)="onImageSelected($event)"
+                    (imageCleared)="onImageCleared()">
+                </app-image-selector>
+            </div>
+
+            <!-- Descripciones -->
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="description" class="block font-bold mb-3">Descripción</label>
+                    <textarea id="description" pTextarea [(ngModel)]="category()!.description" rows="2" fluid placeholder="Descripción de la categoría"></textarea>
+                    <small class="text-muted-color">Máximo 255 caracteres</small>
+                </div>
+                <div>
+                    <label for="frgnDescription" class="block font-bold mb-3">Descripción Extranjera</label>
+                    <textarea id="frgnDescription" pTextarea [(ngModel)]="category()!.frgnDescription" rows="2" fluid placeholder="Descripción en idioma extranjero"></textarea>
+                    <small class="text-muted-color">Máximo 255 caracteres</small>
+                </div>
+            </div>
+
+            <!-- Grupo, Estado y Origen -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="groupItemCode" class="block font-bold mb-3">Grupo de Producto</label>
+                    <p-select 
+                        id="groupItemCode"
+                        [options]="getProductGroupOptions()" 
+                        [(ngModel)]="category()!.groupItemCode"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar grupo"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                    <small class="text-muted-color">Opcional - Grupo al que pertenece</small>
+                </div>
+                <div>
+                    <label for="enabled" class="block font-bold mb-3">Estado *</label>
+                    <p-select 
+                        id="enabled" 
+                        [options]="statusOptions" 
+                        [(ngModel)]="category()!.enabled" 
+                        optionLabel="label" 
+                        optionValue="value" 
+                        placeholder="Seleccionar estado"
+                        variant="filled"
+                        required 
+                        fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !category()!.enabled">El estado es requerido.</small>
+                </div>
+                <div>
+                    <label for="dataSource" class="block font-bold mb-3">Origen de Datos *</label>
+                    <input type="text" pInputText id="dataSource" [(ngModel)]="category()!.dataSource" required fluid placeholder="Ej: S, R, O" maxlength="1" />
+                    <small class="text-red-500" *ngIf="submitted() && !category()!.dataSource">El origen de datos es requerido.</small>
+                    <small class="text-muted-color">S=SAP, R=Ratial Pro, O=Oracle, etc.</small>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-2">Información de la Categoría</h6>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Código:</span>
+                        <span class="text-muted-color">{{ category()!.categoryItemCode || 'Se asignará automáticamente' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Orden de visualización:</span>
+                        <span class="text-primary font-semibold">{{ category()!.visOrder }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getEnabledLabel(category()!.enabled)" [severity]="getEnabledSeverity(category()!.enabled)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Grupo asignado:</span>
+                        <span class="text-primary">{{ getProductGroupName(category()!.groupItemCode || '') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Origen de datos:</span>
+                        <span class="font-mono text-primary">{{ category()!.dataSource || 'No definido' }}</span>
+                    </div>
+                    <div class="flex justify-between" *ngIf="category()!.imageUrl">
+                        <span class="font-medium">Imagen:</span>
+                        <span class="text-success">Configurada</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveCategory()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

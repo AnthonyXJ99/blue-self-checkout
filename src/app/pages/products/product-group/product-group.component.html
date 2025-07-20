@@ -1,0 +1,270 @@
+<p-toolbar class="mb-6">
+    <ng-template #start>
+        <p-button label="Nuevo Grupo" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedProductGroups()" [disabled]="!selectedProductGroups() || !selectedProductGroups().length" />
+    </ng-template>
+    <ng-template #end>
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="productGroups()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['productGroupCode', 'productGroupName', 'frgnName', 'description']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedProductGroups"
+    [rowHover]="true"
+    dataKey="productGroupCode"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} grupos"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Grupos de Productos</h5>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+            </p-iconfield>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="productGroupCode" style="min-width: 10rem">
+                Código
+                <p-sortIcon field="productGroupCode" />
+            </th>
+            <th pSortableColumn="productGroupName" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="productGroupName" />
+            </th>
+            <th pSortableColumn="frgnName" style="min-width: 16rem">
+                Nombre Extranjero
+                <p-sortIcon field="frgnName" />
+            </th>
+            <th style="min-width: 8rem">Imagen</th>
+            <th pSortableColumn="description" style="min-width: 20rem">
+                Descripción
+                <p-sortIcon field="description" />
+            </th>
+            <th pSortableColumn="enabled" style="min-width: 8rem">
+                Estado
+                <p-sortIcon field="enabled" />
+            </th>
+            <th pSortableColumn="visOrder" style="min-width: 8rem">
+                Orden
+                <p-sortIcon field="visOrder" />
+            </th>
+            <th pSortableColumn="dataSource" style="min-width: 8rem">
+                Fuente
+                <p-sortIcon field="dataSource" />
+            </th>
+            <th style="min-width: 8rem">ERP</th>
+            <th style="min-width: 8rem">POS</th>
+            <th style="min-width: 10rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-group>
+        <tr>
+            <td><p-tableCheckbox [value]="group" /></td>
+            <td>
+                <span class="font-semibold">{{ group.productGroupCode }}</span>
+            </td>
+            <td>
+                <span class="font-semibold">{{ group.productGroupName }}</span>
+                <div class="text-sm text-muted-color" *ngIf="group.frgnDescription">
+                    {{ group.frgnDescription }}
+                </div>
+            </td>
+            <td>{{ group.frgnName }}</td>
+            <td>
+                <div class="flex justify-center">
+                    <img *ngIf="group.imageUrl" 
+                         [src]="group.imageUrl" 
+                         alt="img" 
+                         class="rounded border" 
+                         style="width: 48px; height: 48px; object-fit: cover;" 
+                         [title]="group.productGroupName" />
+                    <div *ngIf="!group.imageUrl" 
+                         class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded border flex items-center justify-center">
+                        <i class="pi pi-image text-muted-color"></i>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="max-w-xs truncate" [title]="group.description">
+                    {{ group.description }}
+                </div>
+            </td>
+            <td>
+                <p-tag [value]="getEnabledLabel(group.enabled)" [severity]="getEnabledSeverity(group.enabled)" />
+            </td>
+            <td>
+                <span class="inline-flex items-center justify-center w-8 h-8 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-full text-sm font-semibold">
+                    {{ group.visOrder }}
+                </span>
+            </td>
+            <td>
+                <p-tag [value]="getDataSourceLabel(group.dataSource)" [severity]="getDataSourceSeverity(group.dataSource)" />
+            </td>
+            <td>
+                <span class="text-sm font-mono">{{ group.productGroupCodeERP || '-' }}</span>
+            </td>
+            <td>
+                <span class="text-sm font-mono">{{ group.productGroupCodePOS || '-' }}</span>
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editProductGroup(group)" 
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deleteProductGroup(group)" 
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="productGroupDialog" [style]="{ width: '600px' }" header="Detalles del Grupo de Producto" [modal]="true" (onHide)="hideDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="productGroup()">
+            <!-- Información básica -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="productGroupCode" class="block font-bold mb-3">Código *</label>
+                    <input type="text" pInputText id="productGroupCode" [(ngModel)]="productGroup()!.productGroupCode" required autofocus fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !productGroup()!.productGroupCode">El código es requerido.</small>
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+                <div>
+                    <label for="visOrder" class="block font-bold mb-3">Orden *</label>
+                    <p-inputnumber id="visOrder" [(ngModel)]="productGroup()!.visOrder" [minFractionDigits]="0" [maxFractionDigits]="0" [min]="1" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !productGroup()!.visOrder">El orden es requerido.</small>
+                </div>
+            </div>
+
+            <!-- Nombres -->
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="productGroupName" class="block font-bold mb-3">Nombre *</label>
+                    <input type="text" pInputText id="productGroupName" [(ngModel)]="productGroup()!.productGroupName" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !productGroup()!.productGroupName">El nombre es requerido.</small>
+                    <small class="text-muted-color">Máximo 150 caracteres</small>
+                </div>
+                <div>
+                    <label for="frgnName" class="block font-bold mb-3">Nombre Extranjero</label>
+                    <input type="text" pInputText id="frgnName" [(ngModel)]="productGroup()!.frgnName" fluid />
+                    <small class="text-muted-color">Máximo 150 caracteres</small>
+                </div>
+            </div>
+
+            <!-- 🎯 AQUÍ ESTÁ EL SELECTOR DE IMÁGENES MEJORADO -->
+            <div>
+                <app-image-selector
+                    label="Imagen del Grupo"
+                    [selectedImageUrl]="productGroup()!.imageUrl || ''"
+                    [selectedImageTitle]="productGroup()!.productGroupName || 'Imagen del grupo'"
+                    (imageSelected)="onImageSelected($event)"
+                    (imageCleared)="onImageCleared()">
+                </app-image-selector>
+            </div>
+
+            <!-- Descripciones -->
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="description" class="block font-bold mb-3">Descripción</label>
+                    <textarea id="description" pTextarea [(ngModel)]="productGroup()!.description" rows="2" fluid placeholder="Descripción del grupo de productos"></textarea>
+                    <small class="text-muted-color">Máximo 255 caracteres</small>
+                </div>
+                <div>
+                    <label for="frgnDescription" class="block font-bold mb-3">Descripción Extranjera</label>
+                    <textarea id="frgnDescription" pTextarea [(ngModel)]="productGroup()!.frgnDescription" rows="2" fluid placeholder="Descripción en idioma extranjero"></textarea>
+                    <small class="text-muted-color">Máximo 255 caracteres</small>
+                </div>
+            </div>
+
+            <!-- Estados y configuración -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="enabled" class="block font-bold mb-3">Estado *</label>
+                    <p-select id="enabled" [options]="statusOptions" [(ngModel)]="productGroup()!.enabled" optionLabel="label" optionValue="value" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !productGroup()!.enabled">El estado es requerido.</small>
+                </div>
+                <div>
+                    <label for="dataSource" class="block font-bold mb-3">Origen de Datos *</label>
+                    <input type="text" pInputText id="dataSource" [(ngModel)]="productGroup()!.dataSource" required fluid placeholder="Ej: S, R, O" maxlength="1" />
+                    <small class="text-red-500" *ngIf="submitted() && !productGroup()!.dataSource">El origen de datos es requerido.</small>
+                    <small class="text-muted-color">S=SAP, R=Ratial Pro, O=Oracle, etc.</small>
+                </div>
+                <div class="flex items-end">
+                    <div class="w-full">
+                        <span class="block font-bold mb-3 text-sm">Estado actual:</span>
+                        <p-tag [value]="getEnabledLabel(productGroup()!.enabled)" [severity]="getEnabledSeverity(productGroup()!.enabled)" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Códigos ERP y POS -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="productGroupCodeERP" class="block font-bold mb-3">Código ERP</label>
+                    <input type="text" pInputText id="productGroupCodeERP" [(ngModel)]="productGroup()!.productGroupCodeERP" placeholder="Código en sistema ERP" fluid />
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+                <div>
+                    <label for="productGroupCodePOS" class="block font-bold mb-3">Código POS</label>
+                    <input type="text" pInputText id="productGroupCodePOS" [(ngModel)]="productGroup()!.productGroupCodePOS" placeholder="Código en sistema POS" fluid />
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-2">Información del Grupo</h6>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Código:</span>
+                        <span class="text-muted-color">{{ productGroup()!.productGroupCode || 'Se asignará automáticamente' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Orden de visualización:</span>
+                        <span class="text-primary font-semibold">{{ productGroup()!.visOrder }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getEnabledLabel(productGroup()!.enabled)" [severity]="getEnabledSeverity(productGroup()!.enabled)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Origen de datos:</span>
+                        <span class="font-mono text-primary">{{ productGroup()!.dataSource || 'No definido' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveProductGroup()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

@@ -1,0 +1,416 @@
+<p-tabview [style]="{ height: 'calc(100vh - 200px)' }">
+    <!-- Tab Customer Groups -->
+    <p-tabpanel header="Grupos de Clientes">
+        <p-card styleClass="h-full">
+            <ng-template pTemplate="header">
+                <div class="flex items-center justify-between">
+                    <h5 class="m-0">Grupos de Clientes</h5>
+                    <p-button label="Nuevo Grupo" icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewCustomerGroup()" />
+                </div>
+            </ng-template>
+            
+            <ng-template pTemplate="content">
+                <p-toolbar styleClass="mb-4">
+                    <ng-template pTemplate="start">
+                        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined size="small" (onClick)="deleteSelectedCustomerGroups()" [disabled]="!selectedCustomerGroups() || !selectedCustomerGroups().length" />
+                    </ng-template>
+
+                    <ng-template pTemplate="end">
+                        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" size="small" (onClick)="exportCustomerGroups()" />
+                    </ng-template>
+                </p-toolbar>
+
+                <p-table
+                    #dtCustomerGroups
+                    [value]="customerGroups()"
+                    [rows]="8"
+                    [paginator]="true"
+                    [globalFilterFields]="['customerGroupCode', 'customerGroupName']"
+                    [tableStyle]="{ 'min-width': '100%' }"
+                    [(selection)]="selectedCustomerGroups"
+                    [rowHover]="true"
+                    dataKey="customerGroupCode"
+                    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} grupos"
+                    [showCurrentPageReport]="true"
+                    [rowsPerPageOptions]="[8, 16, 24]"
+                    [loading]="loading()"
+                >
+                    <ng-template #caption>
+                        <div class="flex items-center justify-between">
+                            <h6 class="m-0">Gestión de Grupos de Clientes</h6>
+                            <div class="flex items-center gap-2">
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" (input)="onGlobalFilter(dtCustomerGroups, $event)" placeholder="Buscar grupos..." />
+                                </p-iconfield>
+                            </div>
+                        </div>
+                    </ng-template>
+                    
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th style="width: 3rem">
+                                <p-tableHeaderCheckbox />
+                            </th>
+                            <th pSortableColumn="customerGroupCode" style="min-width: 12rem">
+                                Código
+                                <p-sortIcon field="customerGroupCode" />
+                            </th>
+                            <th pSortableColumn="customerGroupName" style="min-width: 16rem">
+                                Nombre del Grupo
+                                <p-sortIcon field="customerGroupName" />
+                            </th>
+                            <th pSortableColumn="enabled" style="min-width: 10rem">
+                                Estado
+                                <p-sortIcon field="enabled" />
+                            </th>
+                            <th pSortableColumn="dataSource" style="min-width: 10rem">
+                                Fuente
+                                <p-sortIcon field="dataSource" />
+                            </th>
+                            <th style="min-width: 8rem"></th>
+                        </tr>
+                    </ng-template>
+                    
+                    <ng-template pTemplate="body" let-customerGroup>
+                        <tr>
+                            <td style="width: 3rem">
+                                <p-tableCheckbox [value]="customerGroup" />
+                            </td>
+                            <td style="min-width: 12rem">
+                                <span class="font-semibold">{{ customerGroup.customerGroupCode }}</span>
+                            </td>
+                            <td style="min-width: 16rem">
+                                <span class="font-semibold">{{ customerGroup.customerGroupName }}</span>
+                            </td>
+                            <td style="min-width: 10rem">
+                                <p-tag [value]="getStatusLabel(customerGroup.enabled)" [severity]="getSeverity(customerGroup.enabled)" />
+                            </td>
+                            <td style="min-width: 10rem">
+                                <p-tag [value]="getDataSourceLabel(customerGroup!.datasource)" [severity]="getDataSourceSeverity(customerGroup.dataSource)" />
+                            </td>
+                            <td>
+                                <div class="flex gap-1">
+                                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" (click)="editCustomerGroup(customerGroup)" pTooltip="Editar" />
+                                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" (click)="deleteCustomerGroup(customerGroup)" pTooltip="Eliminar" />
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </ng-template>
+        </p-card>
+    </p-tabpanel>
+
+    <!-- Tab Customers -->
+    <p-tabpanel header="Clientes">
+        <p-card styleClass="h-full">
+            <ng-template pTemplate="header">
+                <div class="flex items-center justify-between">
+                    <h5 class="m-0">Clientes</h5>
+                    <p-button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewCustomer()" />
+                </div>
+            </ng-template>
+            
+            <ng-template pTemplate="content">
+                <p-toolbar styleClass="mb-4">
+                    <ng-template pTemplate="start">
+                        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined size="small" (onClick)="deleteSelectedCustomers()" [disabled]="!selectedCustomers() || !selectedCustomers().length" />
+                    </ng-template>
+
+                    <ng-template pTemplate="end">
+                        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" size="small" (onClick)="exportCustomers()" />
+                    </ng-template>
+                </p-toolbar>
+
+                <p-table
+                    #dtCustomers
+                    [value]="customers()"
+                    [rows]="8"
+                    [paginator]="true"
+                    [globalFilterFields]="['customerCode', 'customerName', 'email', 'taxIdentNumber']"
+                    [tableStyle]="{ 'min-width': '100%' }"
+                    [(selection)]="selectedCustomers"
+                    [rowHover]="true"
+                    dataKey="customerCode"
+                    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} clientes"
+                    [showCurrentPageReport]="true"
+                    [rowsPerPageOptions]="[8, 16, 24]"
+                    [loading]="loading()"
+                >
+                    <ng-template #caption>
+                        <div class="flex items-center justify-between">
+                            <h6 class="m-0">Gestión de Clientes</h6>
+                            <div class="flex items-center gap-2">
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" (input)="onGlobalFilter(dtCustomers, $event)" placeholder="Buscar clientes..." />
+                                </p-iconfield>
+                            </div>
+                        </div>
+                    </ng-template>
+                    
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th style="width: 3rem">
+                                <p-tableHeaderCheckbox />
+                            </th>
+                            <th pSortableColumn="customerCode" style="min-width: 10rem">
+                                Código
+                                <p-sortIcon field="customerCode" />
+                            </th>
+                            <th pSortableColumn="customerName" style="min-width: 16rem">
+                                Nombre del Cliente
+                                <p-sortIcon field="customerName" />
+                            </th>
+                            <th pSortableColumn="taxIdentNumber" style="min-width: 12rem">
+                                RUT
+                                <p-sortIcon field="taxIdentNumber" />
+                            </th>
+                            <th style="min-width: 12rem">Contacto</th>
+                            <th style="min-width: 12rem">Grupo</th>
+                            <th pSortableColumn="enabled" style="min-width: 8rem">
+                                Estado
+                                <p-sortIcon field="enabled" />
+                            </th>
+                            <th style="min-width: 8rem"></th>
+                        </tr>
+                    </ng-template>
+                    
+                    <ng-template pTemplate="body" let-customer>
+                        <tr>
+                            <td style="width: 3rem">
+                                <p-tableCheckbox [value]="customer" />
+                            </td>
+                            <td style="min-width: 10rem">
+                                <span class="font-semibold">{{ customer.customerCode }}</span>
+                            </td>
+                            <td style="min-width: 16rem">
+                                <div class="flex flex-column">
+                                    <span class="font-semibold">{{ customer.customerName }}</span>
+                                </div>
+                            </td>
+                            <td style="min-width: 12rem">
+                                <span class="font-mono">{{ customer.taxIdentNumber || '-' }}</span>
+                            </td>
+                            <td style="min-width: 12rem">
+                                <div class="flex flex-column">
+                                    <small class="text-muted-color" *ngIf="customer.email">
+                                        <i class="pi pi-envelope mr-1"></i>{{ customer.email }}
+                                    </small>
+                                    <small class="text-muted-color" *ngIf="customer.cellPhoneNumber">
+                                        <i class="pi pi-phone mr-1"></i>{{ customer.cellPhoneNumber }}
+                                    </small>
+                                </div>
+                            </td>
+                            <td style="min-width: 12rem">
+                                <p-tag [value]="getCustomerGroupName(customer.customerGroupCode || '')" severity="info" *ngIf="customer.customerGroupCode" />
+                                <span class="text-muted-color text-sm" *ngIf="!customer.customerGroupCode">Sin grupo</span>
+                            </td>
+                            <td style="min-width: 8rem">
+                                <p-tag [value]="getStatusLabel(customer.enabled)" [severity]="getSeverity(customer.enabled)" />
+                            </td>
+                            <td>
+                                <div class="flex gap-1">
+                                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" (click)="editCustomer(customer)" pTooltip="Editar" />
+                                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" (click)="deleteCustomer(customer)" pTooltip="Eliminar" />
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </ng-template>
+        </p-card>
+    </p-tabpanel>
+</p-tabview>
+
+<!-- Dialog para Customer Groups -->
+<p-dialog [(visible)]="customerGroupDialog" [style]="{ width: '500px' }" header="Detalles del Grupo de Clientes" [modal]="true" (onHide)="hideCustomerGroupDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="customerGroup()">
+            <!-- Código del grupo -->
+            <div>
+                <label for="customerGroupCode" class="block font-bold mb-3">Código del Grupo *</label>
+                <input type="text" pInputText id="customerGroupCode" [(ngModel)]="customerGroup()!.customerGroupCode" required autofocus fluid
+                  [readonly]="isEditingCustomerGroup()" />
+                <small class="text-red-500" *ngIf="customerGroupSubmitted() && !customerGroup()!.customerGroupCode">El código es requerido.</small>
+                <small class="text-muted-color">Máximo 50 caracteres</small>
+            </div>
+            
+            <!-- Nombre del grupo -->
+            <div>
+                <label for="customerGroupName" class="block font-bold mb-3">Nombre del Grupo *</label>
+                <input type="text" pInputText id="customerGroupName" [(ngModel)]="customerGroup()!.customerGroupName" required fluid />
+                <small class="text-red-500" *ngIf="customerGroupSubmitted() && !customerGroup()!.customerGroupName">El nombre es requerido.</small>
+                <small class="text-muted-color">Máximo 100 caracteres</small>
+            </div>
+            
+            <!-- Estados -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="enabled" class="block font-bold mb-3">Estado *</label>
+                    <p-select 
+                        id="enabled"
+                        [options]="statusOptions" 
+                        [(ngModel)]="customerGroup()!.enabled"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar estado"
+                        variant="filled"
+                        required
+                        fluid>
+                    </p-select>
+                    <small class="text-red-500" *ngIf="customerGroupSubmitted() && !customerGroup()!.enabled">El estado es requerido.</small>
+                </div>
+                <div>
+                    <label for="dataSource" class="block font-bold mb-3">Fuente de Datos *</label>
+                    <input type="text" pInputText id="dataSource" [(ngModel)]="customerGroup()!.datasource" required fluid placeholder="Ej: S=SAP, R=Ratial Pro, O=Oracle" />
+                    <small class="text-red-500" *ngIf="customerGroupSubmitted() && !customerGroup()!.datasource">La fuente de datos es requerida.</small>
+                    <small class="text-muted-color">Ej: S=SAP, R=Ratial Pro, O=Oracle</small>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-2">Información del Grupo</h6>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Código:</span>
+                        <span class="text-muted-color">{{ customerGroup()!.customerGroupCode || 'Se asignará automáticamente' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getStatusLabel(customerGroup()!.enabled)" [severity]="getSeverity(customerGroup()!.enabled)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Fuente de datos:</span>
+                        <p-tag [value]="getDataSourceLabel(customerGroup()!.datasource)" [severity]="getDataSourceSeverity(customerGroup()!.datasource)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideCustomerGroupDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveCustomerGroup()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para Customers -->
+<p-dialog [(visible)]="customerDialog" [style]="{ width: '600px' }" header="Detalles del Cliente" [modal]="true" (onHide)="hideCustomerDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="customer()">
+            <!-- Información básica -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="customerCode" class="block font-bold mb-3">Código del Cliente *</label>
+                    <input type="text" pInputText id="customerCode" [(ngModel)]="customer()!.customerCode" required autofocus fluid />
+                    <small class="text-red-500" *ngIf="customerSubmitted() && !customer()!.customerCode">El código es requerido.</small>
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+                <div>
+                    <label for="customerName" class="block font-bold mb-3">Nombre del Cliente *</label>
+                    <input type="text" pInputText id="customerName" [(ngModel)]="customer()!.customerName" required fluid />
+                    <small class="text-red-500" *ngIf="customerSubmitted() && !customer()!.customerName">El nombre es requerido.</small>
+                    <small class="text-muted-color">Máximo 100 caracteres</small>
+                </div>
+            </div>
+            
+            <!-- Información de identificación -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="taxIdentNumber" class="block font-bold mb-3">RUT</label>
+                    <input type="text" pInputText id="taxIdentNumber" [(ngModel)]="customer()!.taxIdentNumber" placeholder="12345678-9" fluid />
+                    <small class="text-muted-color">Máximo 20 caracteres</small>
+                </div>
+                <div>
+                    <label for="cellPhoneNumber" class="block font-bold mb-3">Teléfono</label>
+                    <input type="text" pInputText id="cellPhoneNumber" [(ngModel)]="customer()!.cellPhoneNumber" placeholder="+56 9 1234 5678" fluid />
+                    <small class="text-muted-color">Máximo 15 caracteres</small>
+                </div>
+            </div>
+            
+            <!-- Email -->
+            <div>
+                <label for="email" class="block font-bold mb-3">Email</label>
+                <input type="email" pInputText id="email" [(ngModel)]="customer()!.email" placeholder="cliente@empresa.com" fluid />
+                <small class="text-red-500" *ngIf="customerSubmitted() && customer()!.email && !isValidEmail(customer()!.email)">
+                  El formato del email no es válido.
+                </small>
+                <small class="text-muted-color">Máximo 100 caracteres</small>
+            </div>
+            
+            <!-- Grupo y estados -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="customerGroupCode" class="block font-bold mb-3">Grupo</label>
+                    <p-select 
+                        id="customerGroupCode"
+                        [options]="getCustomerGroupOptions()" 
+                        [(ngModel)]="customer()!.customerGroupCode"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar grupo"
+                        variant="filled"
+                        fluid
+                        appendTo="body">
+                    </p-select>
+                    <small class="text-muted-color">Opcional</small>
+                </div>
+                <div>
+                    <label for="customerEnabled" class="block font-bold mb-3">Estado *</label>
+                    <p-select 
+                        id="customerEnabled"
+                        [options]="statusOptions" 
+                        [(ngModel)]="customer()!.enabled"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar estado"
+                        variant="filled"
+                        required
+                        fluid
+                        appendTo="body">
+                    </p-select>
+                    <small class="text-red-500" *ngIf="customerSubmitted() && !customer()!.enabled">El estado es requerido.</small>
+                </div>
+                <div>
+                    <label for="customerDataSource" class="block font-bold mb-3">Fuente *</label>
+                    <input type="text" pInputText id="customerDataSource" [(ngModel)]="customer()!.datasource" fluid placeholder="Ej: S=SAP, R=Ratial Pro, O=Oracle" />
+                    <small class="text-muted-color">Ej: S=SAP, R=Ratial Pro, O=Oracle</small>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-2">Información del Cliente</h6>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Código:</span>
+                        <span class="text-muted-color">{{ customer()!.customerCode || 'Se asignará automáticamente' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getStatusLabel(customer()!.enabled)" [severity]="getSeverity(customer()!.enabled)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Grupo asignado:</span>
+                        <span class="text-primary">{{ getCustomerGroupName(customer()!.customerGroupCode || '') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Fuente de datos:</span>
+                            <p-tag [value]="getDataSourceLabel(customer()!.datasource || 'M')" [severity]="getDataSourceSeverity(customer()!.datasource || 'M')" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideCustomerDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveCustomer()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" acceptButtonStyleClass="p-button-danger" acceptLabel="Sí" rejectButtonStyleClass="p-button-secondary" rejectLabel="No"  />
+<p-toast />
