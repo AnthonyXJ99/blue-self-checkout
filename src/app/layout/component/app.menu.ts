@@ -26,7 +26,10 @@ export class AppMenu {
             },
             {
                 label: 'Dispositivos',
-                items: [{ label: 'Dispositivos', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices'] }]
+                items: [
+                    { label: 'Dispositivos', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices/devices'] },
+                    { label: 'OPOS', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices/opos'] }
+                ]
             },
             {
                 label: 'Galería',

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { DeviceApiService } from '../../service/device-api.service';
+import { DeviceApiService } from '../../../service/device-api.service';
 import { Device, DeviceCreateRequest, DeviceFilterParams, DevicePagedResponse, DeviceUpdateRequest } from '../model/device.model';
 
 @Injectable({ providedIn: 'root' })
@@ -103,5 +103,21 @@ export class DeviceRepository {
 
   exportDevicesToCSV(devices: Device[]): string {
     return this.deviceApi.exportDevicesToCSV(devices);
+  }
+
+  deleteMultipleDevices(deviceCodes: string[]): Observable<{ success: number; failed: number; errors: string[] }> {
+    return this.deviceApi.deleteMultipleDevices(deviceCodes);
+  }
+
+  toggleMultipleDevicesStatus(deviceCodes: string[], enabled: boolean): Observable<{ success: number; failed: number; errors: string[] }> {
+    return this.deviceApi.toggleMultipleDevicesStatus(deviceCodes, enabled);
+  }
+
+  generateDeviceCode(): string {
+    return this.deviceApi.generateDeviceCode();
+  }
+
+  pingDevice(device: Device): Observable<{ isReachable: boolean; responseTime?: number; error?: string }> {
+    return this.deviceApi.pingDevice(device);
   }
 }

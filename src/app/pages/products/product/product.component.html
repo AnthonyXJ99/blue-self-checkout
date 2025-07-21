@@ -1,11 +1,12 @@
 <p-toolbar styleClass="mb-6">
     <ng-template pTemplate="start">
         <p-button label="Nuevo Producto" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedProducts()" [disabled]="!selectedProducts() || !selectedProducts()!.length" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedProducts()" [disabled]="!selectedProducts() || !selectedProducts().length" />
     </ng-template>
 
     <ng-template pTemplate="end">
-        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="dt.exportCSV()" />
+        <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" class="mr-2" />
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
     </ng-template>
 </p-toolbar>
 
@@ -14,7 +15,7 @@
     [value]="products()"
     [rows]="10"
     [paginator]="true"
-    [globalFilterFields]="['itemCode', 'itemName', 'frgnName', 'description']"
+    [globalFilterFields]="['itemCode', 'itemName', 'frgnName', 'description', 'eanCode']"
     [tableStyle]="{ 'min-width': '75rem' }"
     [(selection)]="selectedProducts"
     [rowHover]="true"
@@ -22,28 +23,76 @@
     currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} productos"
     [showCurrentPageReport]="true"
     [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
 >
     <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Gestión de Productos</h5>
-            <div class="flex items-center gap-2">
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestión de Productos</h5>
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar productos..." />
                 </p-iconfield>
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-filter" />
+            </div>
+            
+            <!-- Filtros avanzados -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Categoría</label>
                     <p-select 
-                        [options]="categoryOptions" 
+                        [options]="getCategoryFilterOptions()" 
                         [(ngModel)]="selectedCategory"
                         (onChange)="onCategoryFilter()"
                         optionLabel="label" 
                         optionValue="value"
-                        placeholder="Todas las categorías"
+                        placeholder="Todas"
                         variant="filled"
-                        [style]="{ width: '200px' }">
+                        fluid>
                     </p-select>
-                </p-iconfield>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Grupo</label>
+                    <p-select 
+                        [options]="getGroupFilterOptions()" 
+                        [(ngModel)]="selectedGroup"
+                        (onChange)="onGroupFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Precio Mín.</label>
+                    <p-inputnumber 
+                        [(ngModel)]="minPrice" 
+                        mode="currency" 
+                        currency="COP"  
+                        locale="es-CO"
+                        (onInput)="onPriceRangeFilter()"
+                        placeholder="$0"
+                        fluid />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Precio Máx.</label>
+                    <p-inputnumber 
+                        [(ngModel)]="maxPrice" 
+                        mode="currency" 
+                        currency="COP" 
+                        locale="es-CO"
+                        (onInput)="onPriceRangeFilter()"
+                        placeholder="$999999"
+                        fluid />
+                </div>
+                <div class="flex items-end">
+                    <p-button 
+                        label="Aplicar" 
+                        icon="pi pi-filter" 
+                        size="small"
+                        (onClick)="onPriceRangeFilter()"
+                        fluid />
+                </div>
             </div>
         </div>
     </ng-template>
@@ -53,7 +102,7 @@
             <th style="width: 3rem">
                 <p-tableHeaderCheckbox />
             </th>
-            <th style="min-width: 12rem">Imagen</th>
+            <th style="min-width: 10rem">Imagen</th>
             <th pSortableColumn="itemCode" style="min-width: 12rem">
                 Código
                 <p-sortIcon field="itemCode" />
@@ -62,22 +111,17 @@
                 Nombre
                 <p-sortIcon field="itemName" />
             </th>
-            <th pSortableColumn="price" style="min-width: 10rem">
+            <th pSortableColumn="price" style="min-width: 12rem">
                 Precio
                 <p-sortIcon field="price" />
             </th>
-            <th pSortableColumn="categoryItemCode" style="min-width: 12rem">
-                Categoría
-                <p-sortIcon field="categoryItemCode" />
-            </th>
+            <th style="min-width: 12rem">Categoría</th>
+            <th style="min-width: 12rem">Grupo</th>
             <th pSortableColumn="rating" style="min-width: 10rem">
                 Rating
                 <p-sortIcon field="rating" />
             </th>
-            <th pSortableColumn="enabled" style="min-width: 10rem">
-                Estado
-                <p-sortIcon field="enabled" />
-            </th>
+            <th style="min-width: 10rem">Estado</th>
             <th style="min-width: 12rem"></th>
         </tr>
     </ng-template>
@@ -87,145 +131,213 @@
             <td style="width: 3rem">
                 <p-tableCheckbox [value]="product" />
             </td>
-            <td style="min-width: 12rem">
-                <div class="flex flex-column items-center">
-                    <img [src]="product.imageUrl || 'https://via.placeholder.com/80x80'" [alt]="product.itemName" style="width: 80px; height: 80px; object-fit: cover;" class="rounded mb-2" />
+            <td style="min-width: 10rem">
+                <div class="flex justify-center">
+                    <img *ngIf="product.imageUrl" 
+                         [src]="product.imageUrl" 
+                         [alt]="product.itemName" 
+                         class="rounded border shadow-sm" 
+                         style="width: 64px; height: 64px; object-fit: cover;" 
+                         [title]="product.itemName" />
+                    <div *ngIf="!product.imageUrl" 
+                         class="w-16 h-16 bg-surface-100 dark:bg-surface-700 rounded border flex items-center justify-center">
+                        <i class="pi pi-image text-muted-color text-xl"></i>
+                    </div>
                 </div>
             </td>
             <td style="min-width: 12rem">
-                <div class="flex flex-column">
+                <div class="flex flex-col">
                     <span class="font-semibold">{{ product.itemCode }}</span>
-                    <small class="text-muted-color">{{ product.eanCode }}</small>
+                    <small class="text-muted-color" *ngIf="product.eanCode">EAN: {{ product.eanCode }}</small>
                 </div>
             </td>
             <td style="min-width: 16rem">
-                <div class="flex flex-column">
+                <div class="flex flex-col">
                     <span class="font-semibold">{{ product.itemName }}</span>
-                    <small class="text-muted-color">{{ product.frgnName }}</small>
-                </div>
-            </td>
-            <td style="min-width: 10rem">
-                <div class="flex flex-column">
-                    <span class="font-semibold">{{ product.price | currency:'USD' }}</span>
-                    <small class="text-red-500" *ngIf="product.discount > 0">-{{ product.discount }}%</small>
+                    <small class="text-muted-color" *ngIf="product.frgnName">{{ product.frgnName }}</small>
+                    <small class="text-muted-color text-xs" *ngIf="product.description">{{ (product.description.length > 50) ? (product.description | slice:0:50) + '...' : product.description }}</small>
                 </div>
             </td>
             <td style="min-width: 12rem">
-                <p-tag [value]="getCategoryLabel(product.categoryItemCode)" severity="info" />
+                <div class="flex flex-col">
+                    <span class="font-semibold text-lg">{{ formatPrice(product.price) }}</span>
+                    <div *ngIf="hasDiscount(product)" class="flex items-center gap-2">
+                        <span class="text-sm line-through text-muted-color">{{ formatPrice(product.price) }}</span>
+                        <p-tag value="-{{ product.discount }}%" severity="success" />
+                    </div>
+                    <span *ngIf="hasDiscount(product)" class="text-success font-medium">{{ formatPrice(calculateDiscountedPrice(product)) }}</span>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <p-tag [value]="getCategoryLabel(product.categoryItemCode || '')" 
+                       severity="info" 
+                       *ngIf="product.categoryItemCode" />
+                <span class="text-muted-color text-sm" *ngIf="!product.categoryItemCode">Sin categoría</span>
+            </td>
+            <td style="min-width: 12rem">
+                <p-tag [value]="getGroupLabel(product.groupItemCode || '')" 
+                       severity="secondary" 
+                       *ngIf="product.groupItemCode" />
+                <span class="text-muted-color text-sm" *ngIf="!product.groupItemCode">Sin grupo</span>
             </td>
             <td style="min-width: 10rem">
                 <div class="flex items-center gap-2">
                     <p-rating [(ngModel)]="product.rating" [readonly]="true" [stars]="5" />
-                    <span class="text-sm">{{ product.rating }}</span>
+                    <span class="text-sm font-medium">{{ product.rating | number:'1.1-1' }}</span>
                 </div>
             </td>
             <td style="min-width: 10rem">
-                <p-tag [value]="getStatusLabel(product.enabled)" [severity]="getSeverity(product.enabled)" />
+                <div class="flex flex-col gap-1">
+                    <p-tag [value]="getOverallStatusLabel(product)" [severity]="getOverallStatusSeverity(product)" />
+                    <div class="flex gap-1">
+                        <p-chip *ngIf="product.sellItem === 'Y'" label="Venta" styleClass="p-chip-sm" />
+                        <p-chip *ngIf="product.available === 'Y'" label="Disponible" styleClass="p-chip-sm" />
+                        <p-chip *ngIf="product.enabled === 'Y'" label="Activo" styleClass="p-chip-sm" />
+                    </div>
+                </div>
             </td>
             <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editProduct(product)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteProduct(product)" />
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editProduct(product)" 
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deleteProduct(product)" 
+                        pTooltip="Eliminar" />
+                </div>
             </td>
         </tr>
     </ng-template>
 </p-table>
 
-<p-dialog [(visible)]="productDialog" [style]="{ width: '900px' }" header="Detalles del Producto" [modal]="true" (onHide)="hideDialog()">
+<p-dialog [(visible)]="productDialog" [style]="{ width: '95vw', maxWidth: '1200px', height: '90vh' }" header="Detalles del Producto" [modal]="true" (onHide)="hideDialog()" [maximizable]="true">
     <ng-template #content>
-        <div *ngIf="product()">
-            <p-tabview>
+        <div *ngIf="product()" class="h-full">
+            <p-tabview class="h-full">
                 <!-- Pestaña Información Básica -->
                 <p-tabpanel header="Información Básica">
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Columna Izquierda -->
                         <div class="flex flex-col gap-4">
-                            <!-- Código del producto -->
-                            <div>
-                                <label for="itemCode" class="block font-bold mb-3">Código del Producto *</label>
-                                <input type="text" pInputText id="itemCode" [(ngModel)]="product()!.itemCode" required autofocus fluid />
-                                <small class="text-red-500" *ngIf="submitted() && !product()!.itemCode">El código es requerido.</small>
+                            <!-- Códigos -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="itemCode" class="block font-bold mb-3">Código del Producto *</label>
+                                    <input type="text" pInputText id="itemCode" [(ngModel)]="product()!.itemCode" required autofocus fluid />
+                                    <small class="text-red-500" *ngIf="submitted() && !product()!.itemCode">El código es requerido.</small>
+                                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                                </div>
+                                <div>
+                                    <label for="eanCode" class="block font-bold mb-3">Código EAN/Barras</label>
+                                    <input type="text" pInputText id="eanCode" [(ngModel)]="product()!.eanCode" fluid />
+                                    <small class="text-muted-color">Código de barras del producto</small>
+                                </div>
                             </div>
                             
-                            <!-- Código EAN -->
-                            <div>
-                                <label for="eanCode" class="block font-bold mb-3">Código EAN</label>
-                                <input type="text" pInputText id="eanCode" [(ngModel)]="product()!.eanCode" fluid />
-                            </div>
-                            
-                            <!-- Nombre del producto -->
+                            <!-- Nombres -->
                             <div>
                                 <label for="itemName" class="block font-bold mb-3">Nombre del Producto *</label>
                                 <input type="text" pInputText id="itemName" [(ngModel)]="product()!.itemName" required fluid />
                                 <small class="text-red-500" *ngIf="submitted() && !product()!.itemName">El nombre es requerido.</small>
+                                <small class="text-muted-color">Máximo 150 caracteres</small>
                             </div>
                             
-                            <!-- Nombre en extranjero -->
                             <div>
                                 <label for="frgnName" class="block font-bold mb-3">Nombre en Extranjero</label>
                                 <input type="text" pInputText id="frgnName" [(ngModel)]="product()!.frgnName" fluid />
+                                <small class="text-muted-color">Nombre en otro idioma</small>
                             </div>
                             
-                            <!-- Precio -->
-                            <div>
-                                <label for="price" class="block font-bold mb-3">Precio</label>
-                                <p-inputnumber id="price" [(ngModel)]="product()!.price" mode="currency" currency="USD" locale="en-US" fluid />
+                            <!-- Precios -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="price" class="block font-bold mb-3">Precio *</label>
+                                    <p-inputnumber id="price" [(ngModel)]="product()!.price" mode="currency" currency="USD" locale="en-US" [min]="0" required fluid />
+                                    <small class="text-red-500" *ngIf="submitted() && !product()!.price">El precio es requerido.</small>
+                                </div>
+                                <div>
+                                    <label for="discount" class="block font-bold mb-3">Descuento (%)</label>
+                                    <p-inputnumber id="discount" [(ngModel)]="product()!.discount" [min]="0" [max]="100" fluid />
+                                    <small class="text-muted-color">Porcentaje de descuento</small>
+                                </div>
                             </div>
-                            
-                            <!-- Descuento -->
-                            <div>
-                                <label for="discount" class="block font-bold mb-3">Descuento (%)</label>
-                                <p-inputnumber id="discount" [(ngModel)]="product()!.discount" [min]="0" [max]="100" fluid />
+
+                            <!-- Preview de precios -->
+                            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="product()!.price > 0">
+                                <h6 class="font-semibold mb-2">Preview de Precios</h6>
+                                <div class="flex justify-between items-center">
+                                    <span>Precio original:</span>
+                                    <span class="font-semibold">{{ formatPrice(product()!.price) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center" *ngIf="hasDiscount(product()!)">
+                                    <span>Descuento ({{ product()!.discount }}%):</span>
+                                    <span class="text-red-500">-{{ formatPrice(product()!.price * (product()!.discount || 0) / 100) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t pt-2 mt-2">
+                                    <span class="font-bold">Precio final:</span>
+                                    <span class="font-bold text-lg text-primary">{{ formatPrice(calculateDiscountedPrice(product()!)) }}</span>
+                                </div>
                             </div>
                         </div>
                         
                         <!-- Columna Derecha -->
                         <div class="flex flex-col gap-4">
-                            <!-- Categoría -->
-                            <div>
-                                <label for="categoryItemCode" class="block font-bold mb-3">Categoría</label>
-                                <p-select 
-                                    id="categoryItemCode"
-                                    [options]="categoryOptions" 
-                                    [(ngModel)]="product()!.categoryItemCode"
-                                    optionLabel="label" 
-                                    optionValue="value"
-                                    placeholder="Seleccionar categoría"
-                                    variant="filled"
-                                    fluid>
-                                </p-select>
+                            <!-- Categorización -->
+                            <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label for="categoryItemCode" class="block font-bold mb-3">Categoría</label>
+                                    <p-select 
+                                        id="categoryItemCode"
+                                        [options]="getProductCategoryOptions()" 
+                                        [(ngModel)]="product()!.categoryItemCode"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        placeholder="Seleccionar categoría"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
+                                
+                                <div>
+                                    <label for="groupItemCode" class="block font-bold mb-3">Grupo</label>
+                                    <p-select 
+                                        id="groupItemCode"
+                                        [options]="getProductGroupOptions()" 
+                                        [(ngModel)]="product()!.groupItemCode"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        placeholder="Seleccionar grupo"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
                             </div>
                             
-                            <!-- Grupo -->
-                            <div>
-                                <label for="groupItemCode" class="block font-bold mb-3">Grupo</label>
-                                <p-select 
-                                    id="groupItemCode"
-                                    [options]="groupOptions" 
-                                    [(ngModel)]="product()!.groupItemCode"
-                                    optionLabel="label" 
-                                    optionValue="value"
-                                    placeholder="Seleccionar grupo"
-                                    variant="filled"
-                                    fluid>
-                                </p-select>
-                            </div>
-                            
-                            <!-- Tiempo de espera -->
-                            <div>
-                                <label for="waitingTime" class="block font-bold mb-3">Tiempo de Espera (min)</label>
-                                <p-inputnumber id="waitingTime" [(ngModel)]="product()!.waitingTime" [min]="1" fluid />
-                            </div>
-                            
-                            <!-- Rating -->
-                            <div>
-                                <label for="rating" class="block font-bold mb-3">Rating</label>
-                                <p-rating [(ngModel)]="product()!.rating" [stars]="5" />
+                            <!-- Tiempo y Rating -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="waitingTime" class="block font-bold mb-3">Tiempo de Espera (min)</label>
+                                    <input type="text" pInputText id="waitingTime" [(ngModel)]="product()!.waitingTime" placeholder="5" fluid />
+                                </div>
+                                <div>
+                                    <label for="rating" class="block font-bold mb-3">Rating</label>
+                                    <p-rating [(ngModel)]="product()!.rating" [stars]="5" />
+                                </div>
                             </div>
                             
                             <!-- Estados -->
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label for="sellItem" class="block font-bold mb-3">Producto de Venta</label>
+                                    <label for="sellItem" class="block font-bold mb-3">Se Vende *</label>
                                     <p-select 
                                         id="sellItem"
                                         [options]="statusOptions" 
@@ -233,11 +345,13 @@
                                         optionLabel="label" 
                                         optionValue="value"
                                         variant="filled"
+                                        required
                                         fluid>
                                     </p-select>
+                                    <small class="text-red-500" *ngIf="submitted() && !product()!.sellItem">Requerido.</small>
                                 </div>
                                 <div>
-                                    <label for="available" class="block font-bold mb-3">Disponible</label>
+                                    <label for="available" class="block font-bold mb-3">Disponible *</label>
                                     <p-select 
                                         id="available"
                                         [options]="statusOptions" 
@@ -245,37 +359,64 @@
                                         optionLabel="label" 
                                         optionValue="value"
                                         variant="filled"
+                                        required
                                         fluid>
                                     </p-select>
+                                    <small class="text-red-500" *ngIf="submitted() && !product()!.available">Requerido.</small>
+                                </div>
+                                <div>
+                                    <label for="enabled" class="block font-bold mb-3">Habilitado *</label>
+                                    <p-select 
+                                        id="enabled"
+                                        [options]="statusOptions" 
+                                        [(ngModel)]="product()!.enabled"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        variant="filled"
+                                        required
+                                        fluid>
+                                    </p-select>
+                                    <small class="text-red-500" *ngIf="submitted() && !product()!.enabled">Requerido.</small>
                                 </div>
                             </div>
-                            
-                            <!-- Estado habilitado -->
-                            <div>
-                                <label for="enabled" class="block font-bold mb-3">Habilitado</label>
-                                <p-select 
-                                    id="enabled"
-                                    [options]="statusOptions" 
-                                    [(ngModel)]="product()!.enabled"
-                                    optionLabel="label" 
-                                    optionValue="value"
-                                    variant="filled"
-                                    fluid>
-                                </p-select>
+
+                            <!-- Estado general del producto -->
+                            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                                <h6 class="font-semibold mb-2">Estado del Producto</h6>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="font-medium">Estado general:</span>
+                                    <p-tag [value]="getOverallStatusLabel(product()!)" [severity]="getOverallStatusSeverity(product()!)" />
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span>Se vende:</span>
+                                        <p-tag [value]="getSellItemLabel(product()!.sellItem)" [severity]="getSeverity(product()!.sellItem)" />
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Disponible:</span>
+                                        <p-tag [value]="getAvailableLabel(product()!.available)" [severity]="getSeverity(product()!.available)" />
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Habilitado:</span>
+                                        <p-tag [value]="getEnabledLabel(product()!.enabled)" [severity]="getSeverity(product()!.enabled)" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Descripciones -->
                     <div class="mt-6">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="description" class="block font-bold mb-3">Descripción</label>
-                                <textarea id="description" pTextarea [(ngModel)]="product()!.description" rows="3" fluid></textarea>
+                                <textarea id="description" pTextarea [(ngModel)]="product()!.description" rows="4" fluid placeholder="Descripción detallada del producto"></textarea>
+                                <small class="text-muted-color">Máximo 255 caracteres</small>
                             </div>
                             <div>
                                 <label for="frgnDescription" class="block font-bold mb-3">Descripción en Extranjero</label>
-                                <textarea id="frgnDescription" pTextarea [(ngModel)]="product()!.frgnDescription" rows="3" fluid></textarea>
+                                <textarea id="frgnDescription" pTextarea [(ngModel)]="product()!.frgnDescription" rows="4" fluid placeholder="Descripción en otro idioma"></textarea>
+                                <small class="text-muted-color">Máximo 255 caracteres</small>
                             </div>
                         </div>
                     </div>
@@ -283,32 +424,35 @@
                 
                 <!-- Pestaña Imagen -->
                 <p-tabpanel header="Imagen">
-                    <div class="flex flex-col gap-4">
-                        <!-- Vista previa de imagen -->
-                        <div class="flex justify-center">
-                            <img [src]="product()!.imageUrl || 'https://via.placeholder.com/300x200'" [alt]="product()!.itemName" class="block m-auto pb-4" style="width: 300px; height: 200px; object-fit: cover;" />
-                        </div>
+                    <div class="flex flex-col gap-6">
+                        <!-- ImageSelector integrado -->
+                        <app-image-selector
+                            label="Imagen del Producto"
+                            [selectedImageUrl]="product()!.imageUrl || ''"
+                            [selectedImageTitle]="product()!.itemName || 'Imagen del producto'"
+                            (imageSelected)="onImageSelected($event)"
+                            (imageCleared)="onImageCleared()">
+                        </app-image-selector>
                         
-                        <!-- Carga de archivo -->
-                        <div>
-                            <label class="block font-bold mb-3">Subir Imagen</label>
-                            <p-fileupload 
-                                mode="basic" 
-                                name="image" 
-                                accept="image/*" 
-                                [maxFileSize]="10000000"
-                                chooseLabel="Seleccionar Imagen"
-                                (onSelect)="onFileUpload($event)"
-                                [auto]="true"
-                                customUpload="true">
-                            </p-fileupload>
-                            <small class="text-muted-color">Formatos: JPG, PNG, GIF. Máximo 10MB</small>
+                        <!-- Información adicional de la imagen -->
+                        <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="product()!.imageUrl">
+                            <h6 class="font-semibold mb-2">Información de la Imagen</h6>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="font-medium">URL:</span>
+                                    <span class="text-muted-color truncate max-w-xs" [title]="product()!.imageUrl">{{ product()!.imageUrl }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-medium">Estado:</span>
+                                    <span class="text-success">Configurada</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </p-tabpanel>
                 
                 <!-- Pestaña Materiales -->
-                <p-tabpanel header="Materiales">
+                <p-tabpanel header="Materiales ({{ materials().length }})">
                     <div class="flex flex-col gap-4">
                         <div class="flex justify-between items-center">
                             <h6 class="font-semibold">Materiales del Producto</h6>
@@ -316,39 +460,45 @@
                         </div>
                         
                         <div class="space-y-4" *ngIf="materials().length > 0">
-                            <div *ngFor="let material of materials(); let i = index" class="p-4 border border-surface-200 rounded">
-                                <div class="grid grid-cols-4 gap-4">
+                            <div *ngFor="let material of materials(); let i = index" class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div>
-                                        <label class="block font-medium mb-2">Código</label>
-                                        <input type="text" pInputText [(ngModel)]="material.itemCode" fluid />
+                                        <label class="block font-medium mb-2">Código *</label>
+                                        <input type="text" pInputText [(ngModel)]="material.itemCode" placeholder="MAT001" fluid />
                                     </div>
                                     <div>
-                                        <label class="block font-medium mb-2">Nombre</label>
-                                        <input type="text" pInputText [(ngModel)]="material.itemName" fluid />
+                                        <label class="block font-medium mb-2">Nombre *</label>
+                                        <input type="text" pInputText [(ngModel)]="material.itemName" placeholder="Nombre del material" fluid />
                                     </div>
                                     <div>
-                                        <label class="block font-medium mb-2">Cantidad</label>
-                                        <p-inputnumber [(ngModel)]="material.quantity" [min]="1" fluid />
+                                        <label class="block font-medium mb-2">Cantidad *</label>
+                                        <p-inputnumber [(ngModel)]="material.quantity" [min]="1" [showButtons]="true" fluid />
                                     </div>
                                     <div class="flex items-end">
-                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="removeMaterial(i)" />
+                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="removeMaterial(i)" pTooltip="Eliminar material" />
                                     </div>
                                 </div>
-                                <div class="mt-2">
+                                <div class="mt-3 flex items-center gap-4">
                                     <p-checkbox [(ngModel)]="material.isPrimary" [binary]="true" label="Material Principal" />
+                                    <div class="flex-1">
+                                        <label class="block font-medium mb-2">URL de Imagen</label>
+                                        <input type="text" pInputText [(ngModel)]="material.imageUrl" placeholder="https://ejemplo.com/imagen.jpg" fluid />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div *ngIf="materials().length === 0" class="text-center text-muted-color py-8">
-                            <i class="pi pi-box text-4xl mb-2"></i>
-                            <p>No hay materiales agregados</p>
+                        <div *ngIf="materials().length === 0" class="text-center text-muted-color py-12">
+                            <i class="pi pi-box text-6xl mb-4 block"></i>
+                            <h6 class="text-xl mb-2">No hay materiales agregados</h6>
+                            <p class="mb-4">Los materiales son componentes que forman parte del producto</p>
+                            <p-button label="Agregar Primer Material" icon="pi pi-plus" (onClick)="addMaterial()" />
                         </div>
                     </div>
                 </p-tabpanel>
                 
                 <!-- Pestaña Acompañamientos -->
-                <p-tabpanel header="Acompañamientos">
+                <p-tabpanel header="Acompañamientos ({{ accompaniments().length }})">
                     <div class="flex flex-col gap-4">
                         <div class="flex justify-between items-center">
                             <h6 class="font-semibold">Acompañamientos del Producto</h6>
@@ -356,34 +506,44 @@
                         </div>
                         
                         <div class="space-y-4" *ngIf="accompaniments().length > 0">
-                            <div *ngFor="let accompaniment of accompaniments(); let i = index" class="p-4 border border-surface-200 rounded">
-                                <div class="grid grid-cols-5 gap-4">
+                            <div *ngFor="let accompaniment of accompaniments(); let i = index" class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
+                                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                                     <div>
-                                        <label class="block font-medium mb-2">Código</label>
-                                        <input type="text" pInputText [(ngModel)]="accompaniment.itemCode" fluid />
+                                        <label class="block font-medium mb-2">Código *</label>
+                                        <input type="text" pInputText [(ngModel)]="accompaniment.itemCode" placeholder="ACC001" fluid />
                                     </div>
                                     <div>
-                                        <label class="block font-medium mb-2">Nombre</label>
-                                        <input type="text" pInputText [(ngModel)]="accompaniment.itemName" fluid />
+                                        <label class="block font-medium mb-2">Nombre *</label>
+                                        <input type="text" pInputText [(ngModel)]="accompaniment.itemName" placeholder="Nombre del acompañamiento" fluid />
                                     </div>
                                     <div>
                                         <label class="block font-medium mb-2">Precio Anterior</label>
-                                        <p-inputnumber [(ngModel)]="accompaniment.priceOld" mode="currency" currency="USD" fluid />
+                                        <p-inputnumber [(ngModel)]="accompaniment.priceOld" mode="currency" currency="USD" [min]="0" fluid />
                                     </div>
                                     <div>
-                                        <label class="block font-medium mb-2">Precio Actual</label>
-                                        <p-inputnumber [(ngModel)]="accompaniment.price" mode="currency" currency="USD" fluid />
+                                        <label class="block font-medium mb-2">Precio Actual *</label>
+                                        <p-inputnumber [(ngModel)]="accompaniment.price" mode="currency" currency="USD" [min]="0" fluid />
                                     </div>
                                     <div class="flex items-end">
-                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="removeAccompaniment(i)" />
+                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="removeAccompaniment(i)" pTooltip="Eliminar acompañamiento" />
                                     </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="block font-medium mb-2">URL de Imagen</label>
+                                    <input type="text" pInputText [(ngModel)]="accompaniment.imageUrl" placeholder="https://ejemplo.com/imagen.jpg" fluid />
+                                </div>
+                                <div class="mt-2 flex items-center gap-4" *ngIf="accompaniment.priceOld > 0 && accompaniment.price > 0">
+                                    <span class="text-sm text-muted-color">Descuento: </span>
+                                    <p-tag [value]="((accompaniment.priceOld - accompaniment.price) / accompaniment.priceOld * 100).toFixed(0) + '%'" severity="success" />
                                 </div>
                             </div>
                         </div>
                         
-                        <div *ngIf="accompaniments().length === 0" class="text-center text-muted-color py-8">
-                            <i class="pi pi-list text-4xl mb-2"></i>
-                            <p>No hay acompañamientos agregados</p>
+                        <div *ngIf="accompaniments().length === 0" class="text-center text-muted-color py-12">
+                            <i class="pi pi-list text-6xl mb-4 block"></i>
+                            <h6 class="text-xl mb-2">No hay acompañamientos agregados</h6>
+                            <p class="mb-4">Los acompañamientos son productos adicionales que se pueden ofrecer</p>
+                            <p-button label="Agregar Primer Acompañamiento" icon="pi pi-plus" (onClick)="addAccompaniment()" />
                         </div>
                     </div>
                 </p-tabpanel>
@@ -392,10 +552,18 @@
     </ng-template>
 
     <ng-template pTemplate="footer">
-        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
-        <p-button label="Guardar" icon="pi pi-check" (click)="saveProduct()" />
+        <div class="flex justify-between items-center w-full">
+            <div class="text-sm text-muted-color">
+                <span *ngIf="materials().length > 0">{{ materials().length }} material(es) • </span>
+                <span *ngIf="accompaniments().length > 0">{{ accompaniments().length }} acompañamiento(s)</span>
+            </div>
+            <div class="flex gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
+                <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveProduct()" />
+            </div>
+        </div>
     </ng-template>
 </p-dialog>
 
-<p-confirmdialog [style]="{ width: '450px' }" />
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
 <p-toast />

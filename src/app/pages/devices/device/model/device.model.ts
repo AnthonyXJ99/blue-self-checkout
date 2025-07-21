@@ -1,5 +1,5 @@
-import { RequestParams } from "../../../core/config/api.config";
-import { ApiResponse } from "../../../core/model/api-response.model";
+import { RequestParams } from "../../../../core/config/api.config";
+import { ApiResponse } from "../../../../core/model/api-response.model";
 
 /**
  * Modelo de datos para Device
@@ -10,6 +10,7 @@ export interface Device {
     enabled: string;              // Estado habilitado (Y/N) (requerido)
     ipAddress: string;            // Dirección IP del dispositivo (requerido)
     dataSource: string;           // Fuente de datos (requerido)
+    posCode: string;             // Código del punto de venta (FK)
   }
 
 /**
@@ -33,6 +34,7 @@ export interface DeviceCreateRequest {
   enabled: string;              // 'Y' o 'N'
   ipAddress: string;
   dataSource: string;
+  posCode: string;
 }
 
 export interface DeviceUpdateRequest extends DeviceCreateRequest {}

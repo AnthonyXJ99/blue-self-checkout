@@ -5,7 +5,7 @@ import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { GalleryComponent } from './app/pages/gallery/gallery.component';
-import { DevicesComponent } from './app/pages/devices/devices.component';
+import { DevicesComponent } from './app/pages/devices/device/devices.component';
 import { CustomerComponent } from './app/pages/customer/customer.component';
 
 export const appRoutes: Routes = [
@@ -18,8 +18,8 @@ export const appRoutes: Routes = [
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') },
             { path: 'products', loadChildren: () => import('./app/pages/products/products.routes') },
+            { path: 'devices', loadChildren: () => import('./app/pages/devices/devices.routes') },
             { path: 'gallery', component: GalleryComponent },
-            { path: 'devices', component: DevicesComponent },
             { path: 'customer', component: CustomerComponent }
         ]
     },

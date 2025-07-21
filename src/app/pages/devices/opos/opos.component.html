@@ -1,0 +1,363 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nuevo POS" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedPOS()" [disabled]="!selectedPointOfSales() || !selectedPointOfSales().length" />
+        <p-button severity="success" label="Habilitar" icon="pi pi-check" outlined (onClick)="enableSelectedPOS()" [disabled]="!selectedPointOfSales() || !selectedPointOfSales().length" class="ml-2" />
+        <p-button severity="danger" label="Deshabilitar" icon="pi pi-times" outlined (onClick)="disableSelectedPOS()" [disabled]="!selectedPointOfSales() || !selectedPointOfSales().length" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Test Conectividad" icon="pi pi-wifi" outlined severity="info" (onClick)="testConnectivityAll()" [loading]="connectivityTesting()" class="mr-2" />
+        <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" class="mr-2" />
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="pointOfSales()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['posCode', 'posName', 'ipAddress', 'sisCode', 'taxIdentNumber']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedPointOfSales"
+    [rowHover]="true"
+    dataKey="posCode"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} puntos de venta"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestión de Puntos de Venta</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar puntos de venta..." />
+                </p-iconfield>
+            </div>
+            
+            <!-- Filtros avanzados -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Estado</label>
+                    <p-select 
+                        [options]="getFilterOptions().status" 
+                        [(ngModel)]="selectedStatusFilter"
+                        (onChange)="onStatusFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                </div>
+
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="posCode" style="min-width: 12rem">
+                Código POS
+                <p-sortIcon field="posCode" />
+            </th>
+            <th pSortableColumn="posName" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="posName" />
+            </th>
+            <th style="min-width: 12rem">Red & IP</th>
+            <th style="min-width: 12rem">Sistema</th>
+            <th pSortableColumn="enabled" style="min-width: 8rem">
+                Estado
+                <p-sortIcon field="enabled" />
+            </th>
+            <th style="min-width: 10rem">Conectividad</th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    
+    <ng-template pTemplate="body" let-pos>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="pos" />
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ pos.posCode }}</span>
+                    <small class="text-muted-color" *ngIf="pos.datasource">Fuente: {{ pos.datasource }}</small>
+                </div>
+            </td>
+            <td style="min-width: 16rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ pos.posName }}</span>
+                    <small class="text-muted-color" *ngIf="pos.taxIdentNumber">RUT/NIT: {{ pos.taxIdentNumber }}</small>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <i class="pi pi-wifi" [class]="pos.ipAddress ? 'text-primary' : 'text-muted-color'"></i>
+                        <span class="text-sm font-mono">{{ formatIPAddress(pos.ipAddress) }}</span>
+                    </div>
+                    <div class="flex gap-1" *ngIf="pos.ipAddress">
+                        <p-button 
+                            icon="pi pi-search" 
+                            size="small" 
+                            [rounded]="true" 
+                            [outlined]="true"
+                            (click)="testPOSConnectivity(pos)"
+                            pTooltip="Probar conectividad" />
+                    </div>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2" *ngIf="pos.sisCode">
+                        <i class="pi pi-cog text-muted-color"></i>
+                        <span class="text-sm">SIS: {{ pos.sisCode }}</span>
+                    </div>
+                    <div class="flex items-center gap-2" *ngIf="pos.datasource">
+                        <i class="pi pi-database text-muted-color"></i>
+                        <span class="text-sm">{{ pos.datasource }}</span>
+                    </div>
+                    <span class="text-muted-color text-xs" *ngIf="!pos.sisCode && !pos.datasource">Sin configurar</span>
+                </div>
+            </td>
+            <td style="min-width: 8rem">
+                <p-tag [value]="getEnabledLabel(pos.enabled)" [severity]="getEnabledSeverity(pos.enabled)" />
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <i [class]="getConnectivityIcon(pos)" [class.text-success]="getConnectivityStatus(pos) === 'connected'" 
+                           [class.text-danger]="getConnectivityStatus(pos) === 'disconnected'" 
+                           [class.text-muted-color]="getConnectivityStatus(pos) === 'unknown'"></i>
+                        <p-tag [value]="getConnectivityLabel(pos)" [severity]="getConnectivitySeverity(pos)" />
+                    </div>
+                    <div *ngIf="getConnectivityDetails(pos) as details" class="text-xs text-muted-color">
+                        <span *ngIf="details.isReachable">{{ details.responseTime }}ms</span>
+                        <span *ngIf="!details.isReachable">{{ details.error }}</span>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editPOS(pos)" 
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deletePOS(pos)" 
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="posDialog" [style]="{ width: '700px' }" header="Detalles del Punto de Venta" [modal]="true" (onHide)="hideDialog()">
+    <ng-template #content>
+        <div *ngIf="pos()" class="flex flex-col gap-6">
+            <!-- Información básica -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="posCode" class="block font-bold mb-3">Código del POS *</label>
+                    <input type="text" pInputText id="posCode" [(ngModel)]="pos()!.posCode" required autofocus fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !pos()!.posCode">El código es requerido.</small>
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+                <div>
+                    <label for="posName" class="block font-bold mb-3">Nombre del POS *</label>
+                    <input type="text" pInputText id="posName" [(ngModel)]="pos()!.posName" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !pos()!.posName">El nombre es requerido.</small>
+                    <small class="text-muted-color">Máximo 150 caracteres</small>
+                </div>
+            </div>
+            
+            <!-- Configuración de red y sistema -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="ipAddress" class="block font-bold mb-3">Dirección IP</label>
+                    <input type="text" pInputText id="ipAddress" [(ngModel)]="pos()!.ipAddress" placeholder="192.168.1.100" fluid />
+                    <small class="text-muted-color">IP para monitoreo de conectividad</small>
+                    <small class="text-red-500" *ngIf="pos()!.ipAddress && !posRepository.isValidIPAddress(pos()!.ipAddress!)">Formato de IP inválido</small>
+                </div>
+                <div>
+                    <label for="sisCode" class="block font-bold mb-3">Código SIS</label>
+                    <input type="text" pInputText id="sisCode" [(ngModel)]="pos()!.sisCode" placeholder="SIS001" maxlength="20" fluid />
+                    <small class="text-muted-color">Código en sistema SIS (máximo 20 caracteres)</small>
+                </div>
+            </div>
+            
+            <!-- Configuración fiscal y fuente de datos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="taxIdentNumber" class="block font-bold mb-3">RUT/NIT</label>
+                    <input type="text" pInputText id="taxIdentNumber" [(ngModel)]="pos()!.taxIdentNumber" placeholder="12.345.678-9" maxlength="20" fluid />
+                    <small class="text-muted-color">Número de identificación fiscal</small>
+                </div>
+                <div>
+                    <label for="datasource" class="block font-bold mb-3">Fuente de Datos</label>
+                    <input type="text" pInputText id="datasource" [(ngModel)]="pos()!.datasource" placeholder="Fuente de datos" fluid />
+                    <small class="text-muted-color">Origen de los datos del POS</small>
+                </div>
+            </div>
+            
+            <!-- Estado del POS -->
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="enabled" class="block font-bold mb-3">Estado *</label>
+                    <p-select 
+                        id="enabled"
+                        [options]="statusOptions" 
+                        [(ngModel)]="pos()!.enabled"
+                        optionLabel="label" 
+                        optionValue="value"
+                        variant="filled"
+                        required
+                        fluid>
+                    </p-select>
+                    <small class="text-red-500" *ngIf="submitted() && !pos()!.enabled">El estado es requerido.</small>
+                    <small class="text-muted-color">Estado operativo del punto de venta</small>
+                </div>
+            </div>
+
+            <!-- Test de conectividad -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="pos()!.ipAddress">
+                <div class="flex items-center justify-between mb-3">
+                    <h6 class="font-semibold">Test de Conectividad</h6>
+                    <p-button 
+                        label="Probar Conexión" 
+                        icon="pi pi-wifi" 
+                        size="small"
+                        (onClick)="testPOSConnectivity(pos()!)" />
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">IP:</span>
+                        <span class="font-mono">{{ pos()!.ipAddress }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getConnectivityLabel(pos()!)" [severity]="getConnectivitySeverity(pos()!)" />
+                    </div>
+                </div>
+                <div *ngIf="getConnectivityDetails(pos()!) as details" class="mt-3 p-3 bg-surface-100 dark:bg-surface-700 rounded">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium">Último test:</span>
+                        <span class="text-sm">{{ details.lastChecked | date:'short' }}</span>
+                    </div>
+                    <div class="flex justify-between items-center" *ngIf="details.isReachable">
+                        <span class="text-sm font-medium">Tiempo de respuesta:</span>
+                        <span class="text-sm text-success">{{ details.responseTime }}ms</span>
+                    </div>
+                    <div class="flex justify-between items-center" *ngIf="!details.isReachable">
+                        <span class="text-sm font-medium">Error:</span>
+                        <span class="text-sm text-danger">{{ details.error }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sugerencias de configuración -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="getConfigurationSuggestions(pos()!).length > 0">
+                <h6 class="font-semibold mb-2">
+                    <i class="pi pi-lightbulb mr-2"></i>
+                    Sugerencias de Configuración
+                </h6>
+                <ul class="list-disc list-inside text-sm space-y-1">
+                    <li *ngFor="let suggestion of getConfigurationSuggestions(pos()!)" class="text-muted-color">
+                        {{ suggestion }}
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Información del POS -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-3">
+                    <i class="pi pi-info-circle mr-2"></i>
+                    Resumen del Punto de Venta
+                </h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Código:</span>
+                        <span class="text-primary font-mono">{{ pos()!.posCode || 'Se asignará automáticamente' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getEnabledLabel(pos()!.enabled)" [severity]="getEnabledSeverity(pos()!.enabled)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Red:</span>
+                        <span class="font-mono" [class.text-primary]="pos()!.ipAddress" [class.text-muted-color]="!pos()!.ipAddress">
+                            {{ formatIPAddress(pos()!.ipAddress) }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Conectividad:</span>
+                        <p-tag [value]="getConnectivityLabel(pos()!)" [severity]="getConnectivitySeverity(pos()!)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Sistema SIS:</span>
+                        <span class="font-mono" [class.text-primary]="pos()!.sisCode" [class.text-muted-color]="!pos()!.sisCode">
+                            {{ pos()!.sisCode || 'No configurado' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">RUT/NIT:</span>
+                        <span [class.text-primary]="pos()!.taxIdentNumber" [class.text-muted-color]="!pos()!.taxIdentNumber">
+                            {{ pos()!.taxIdentNumber || 'No configurado' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Fuente de datos:</span>
+                        <span [class.text-primary]="pos()!.datasource" [class.text-muted-color]="!pos()!.datasource">
+                            {{ pos()!.datasource || 'No definida' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Configuración:</span>
+                        <span [class.text-success]="getConfigurationSuggestions(pos()!).length === 0" 
+                              [class.text-warning]="getConfigurationSuggestions(pos()!).length > 0">
+                            {{ getConfigurationSuggestions(pos()!).length === 0 ? 'Completa' : getConfigurationSuggestions(pos()!).length + ' pendiente(s)' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-between items-center w-full">
+            <div class="text-sm text-muted-color flex items-center gap-2">
+                <i [class]="getConnectivityIcon(pos()!)" 
+                   [class.text-success]="getConnectivityStatus(pos()!) === 'connected'"
+                   [class.text-danger]="getConnectivityStatus(pos()!) === 'disconnected'"
+                   [class.text-muted-color]="getConnectivityStatus(pos()!) === 'unknown'"></i>
+                <span>{{ getConnectivityLabel(pos()!) }}</span>
+                <span *ngIf="pos()!.ipAddress" class="font-mono text-xs">({{ pos()!.ipAddress }})</span>
+            </div>
+            <div class="flex gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
+                <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="savePOS()" />
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialogs de confirmación y notificaciones -->
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

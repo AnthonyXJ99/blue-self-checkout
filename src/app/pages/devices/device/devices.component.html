@@ -1,0 +1,355 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nuevo Dispositivo" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedDevices()" [disabled]="!selectedDevices() || !selectedDevices().length" />
+        <p-button severity="success" label="Habilitar" icon="pi pi-check" outlined (onClick)="enableSelectedDevices()" [disabled]="!selectedDevices() || !selectedDevices().length" class="ml-2" />
+        <p-button severity="danger" label="Deshabilitar" icon="pi pi-times" outlined (onClick)="disableSelectedDevices()" [disabled]="!selectedDevices() || !selectedDevices().length" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Test Conectividad" icon="pi pi-wifi" outlined severity="info" (onClick)="testConnectivityAll()" [loading]="connectivityTesting()" class="mr-2" />
+        <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" class="mr-2" />
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="devices()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['deviceCode', 'deviceName', 'ipAddress', 'posCode']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedDevices"
+    [rowHover]="true"
+    dataKey="deviceCode"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} dispositivos"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestión de Dispositivos</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar dispositivos..." />
+                </p-iconfield>
+            </div>
+            
+            <!-- Filtros avanzados -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Estado</label>
+                    <p-select 
+                        [options]="getFilterOptions().status" 
+                        [(ngModel)]="selectedStatusFilter"
+                        (onChange)="onStatusFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Punto de Venta</label>
+                    <p-select 
+                        [options]="getFilterOptions().pos" 
+                        [(ngModel)]="selectedPOSFilter"
+                        (onChange)="onPOSFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                </div>
+                <div class="flex items-end">
+                    <p-button 
+                        label="Aplicar Filtros" 
+                        icon="pi pi-filter" 
+                        size="small"
+                        (onClick)="applyFilters()"
+                        fluid />
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="deviceCode" style="min-width: 12rem">
+                Código
+                <p-sortIcon field="deviceCode" />
+            </th>
+            <th pSortableColumn="deviceName" style="min-width: 16rem">
+                Nombre del Dispositivo
+                <p-sortIcon field="deviceName" />
+            </th>
+            <th pSortableColumn="ipAddress" style="min-width: 12rem">
+                Dirección IP
+                <p-sortIcon field="ipAddress" />
+            </th>
+            <th pSortableColumn="posCode" style="min-width: 14rem">
+                Punto de Venta
+                <p-sortIcon field="posCode" />
+            </th>
+            <th pSortableColumn="enabled" style="min-width: 8rem">
+                Estado
+                <p-sortIcon field="enabled" />
+            </th>
+            <th style="min-width: 8rem">Fuente</th>
+            <th style="min-width: 14rem"></th>
+        </tr>
+    </ng-template>
+    
+    <ng-template pTemplate="body" let-device>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="device" />
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ device.deviceCode }}</span>
+                    <small class="text-muted-color" *ngIf="device.dataSource">Fuente: {{ device.dataSource }}</small>
+                </div>
+            </td>
+            <td style="min-width: 16rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ device.deviceName }}</span>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-globe text-primary"></i>
+                    <span class="font-mono">{{ device.ipAddress }}</span>
+                </div>
+            </td>
+            <td style="min-width: 14rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ getPOSName(device.posCode) }}</span>
+                    <small class="text-muted-color">{{ device.posCode }}</small>
+                </div>
+            </td>
+            <td style="min-width: 8rem">
+                <p-tag [value]="getEnabledLabel(device)" [severity]="getSeverity(device)" />
+            </td>
+            <td style="min-width: 8rem">
+                <p-tag [value]="getDataSourceLabel(device.dataSource)" [severity]="getDataSourceSeverity(device.dataSource)" />
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-wifi" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        severity="info"
+                        size="small"
+                        (click)="testDeviceConnectivity(device)"
+                        pTooltip="Verificar conectividad" />
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editDevice(device)" 
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deleteDevice(device)" 
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="deviceDialog" [style]="{ width: '700px' }" header="Detalles del Dispositivo" [modal]="true" (onHide)="hideDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="device()">
+            <!-- Información básica -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="deviceCode" class="block font-bold mb-3">Código del Dispositivo *</label>
+                    <input type="text" pInputText id="deviceCode" [(ngModel)]="device()!.deviceCode" required autofocus fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !device()!.deviceCode">El código es requerido.</small>
+                    <small class="text-muted-color">Máximo 50 caracteres</small>
+                </div>
+                <div>
+                    <label for="deviceName" class="block font-bold mb-3">Nombre del Dispositivo *</label>
+                    <input type="text" pInputText id="deviceName" [(ngModel)]="device()!.deviceName" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !device()!.deviceName">El nombre es requerido.</small>
+                    <small class="text-muted-color">Máximo 150 caracteres</small>
+                </div>
+            </div>
+            
+            <!-- Configuración de red y POS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="ipAddress" class="block font-bold mb-3">Dirección IP *</label>
+                    <input type="text" pInputText id="ipAddress" [(ngModel)]="device()!.ipAddress" placeholder="192.168.1.100" required fluid />
+                    <small class="text-red-500" *ngIf="submitted() && !device()!.ipAddress">La dirección IP es requerida.</small>
+                    <small class="text-muted-color">Ejemplo: 192.168.1.100</small>
+                </div>
+                <div>
+                    <label for="posCode" class="block font-bold mb-3">Punto de Venta *</label>
+                    <p-select 
+                        id="posCode"
+                        [options]="getPOSOptions()" 
+                        [(ngModel)]="device()!.posCode"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar POS"
+                        variant="filled"
+                        required
+                        fluid>
+                    </p-select>
+                    <small class="text-red-500" *ngIf="submitted() && !device()!.posCode">El punto de venta es requerido.</small>
+                    <small class="text-muted-color">POS al que pertenece el dispositivo</small>
+                </div>
+            </div>
+
+            <!-- Estado y fuente de datos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="enabled" class="block font-bold mb-3">Estado *</label>
+                    <p-select 
+                        id="enabled"
+                        [options]="statusOptions" 
+                        [(ngModel)]="device()!.enabled"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar estado"
+                        variant="filled"
+                        required
+                        fluid>
+                    </p-select>
+                    <small class="text-red-500" *ngIf="submitted() && !device()!.enabled">El estado es requerido.</small>
+                    <small class="text-muted-color">Estado operativo del dispositivo</small>
+                </div>
+                <div>
+                    <label for="dataSource" class="block font-bold mb-3">Fuente de Datos *</label>
+                    <input type="text" 
+                           pInputText 
+                           id="dataSource" 
+                           [(ngModel)]="device()!.dataSource" 
+                           placeholder="S" 
+                           maxlength="1" 
+                           required 
+                           fluid 
+                           style="text-transform: uppercase;" />
+                    <small class="text-red-500" *ngIf="submitted() && !device()!.dataSource">La fuente de datos es requerida.</small>
+                    <small class="text-muted-color">Un solo carácter (S, E, M, A, etc.)</small>
+                </div>
+            </div>
+
+            <!-- Test de conectividad -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="device()!.ipAddress">
+                <div class="flex items-center justify-between mb-3">
+                    <h6 class="font-semibold">
+                        <i class="pi pi-wifi mr-2"></i>
+                        Test de Conectividad
+                    </h6>
+                    <p-button 
+                        label="Probar Conexión" 
+                        icon="pi pi-wifi" 
+                        size="small"
+                        (onClick)="testDeviceConnectivity(device()!)" />
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">IP:</span>
+                        <span class="font-mono">{{ device()!.ipAddress }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">POS:</span>
+                        <span class="text-primary">{{ getPOSName(device()!.posCode) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sugerencias de configuración -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="getConfigurationSuggestions(device()!).length > 0">
+                <h6 class="font-semibold mb-2">
+                    <i class="pi pi-lightbulb mr-2"></i>
+                    Sugerencias de Configuración
+                </h6>
+                <ul class="list-disc list-inside text-sm space-y-1">
+                    <li *ngFor="let suggestion of getConfigurationSuggestions(device()!)" class="text-muted-color">
+                        {{ suggestion }}
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Información del dispositivo -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                <h6 class="font-semibold mb-3">
+                    <i class="pi pi-info-circle mr-2"></i>
+                    Resumen del Dispositivo
+                </h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Código:</span>
+                        <span class="text-primary font-mono">{{ device()!.deviceCode || 'Se asignará automáticamente' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Estado:</span>
+                        <p-tag [value]="getEnabledLabel(device()!)" [severity]="getSeverity(device()!)" />
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">IP:</span>
+                        <span class="font-mono" [class.text-primary]="device()!.ipAddress" [class.text-muted-color]="!device()!.ipAddress">
+                            {{ device()!.ipAddress || 'No configurada' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">POS Asignado:</span>
+                        <span [class.text-primary]="device()!.posCode" [class.text-muted-color]="!device()!.posCode">
+                            {{ getPOSName(device()!.posCode) || 'No asignado' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Fuente de datos:</span>
+                        <span [class.text-primary]="device()!.dataSource" [class.text-muted-color]="!device()!.dataSource">
+                            {{ getDataSourceLabel(device()!.dataSource) }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Configuración:</span>
+                        <span [class.text-success]="getConfigurationSuggestions(device()!).length === 0" 
+                              [class.text-warning]="getConfigurationSuggestions(device()!).length > 0">
+                            {{ getConfigurationSuggestions(device()!).length === 0 ? 'Completa' : getConfigurationSuggestions(device()!).length + ' pendiente(s)' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-between items-center w-full">
+            <div class="text-sm text-muted-color flex items-center gap-2">
+                <i class="pi pi-desktop text-primary"></i>
+                <span>{{ device()!.deviceName || 'Nuevo dispositivo' }}</span>
+                    <span *ngIf="device()!.posCode" class="font-mono text-xs">({{ device()!.posCode }})</span>
+            </div>
+            <div class="flex gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
+                <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveDevice()" />
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialogs de confirmación y notificaciones -->
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

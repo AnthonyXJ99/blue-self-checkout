@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { ApiService } from "../../core/services/api.service";
 import { API_CONFIG } from "../../core/config/api.config";
-import { Device, DeviceCreateRequest, DeviceFilterParams, DevicePagedResponse, DeviceUpdateRequest } from "../devices/model/device.model";
+import { Device, DeviceCreateRequest, DeviceFilterParams, DevicePagedResponse, DeviceUpdateRequest } from "../devices/device/model/device.model";
 import { Observable } from "rxjs";
 
 @Injectable({
@@ -58,6 +58,14 @@ export class DeviceApiService {
    */
   deleteDevice(deviceCode: string): Observable<void> {
     return this.apiService.delete<void>(`${this.endpoint}/${deviceCode}`);
+  }
+
+  /**
+   * Elimina múltiples dispositivos
+   * DELETE /api/Devices/delete-multiple
+   */
+  deleteMultipleDevices(deviceCodes: string[]): Observable<{ success: number; failed: number; errors: string[] }> {
+    return this.apiService.delete<{ success: number; failed: number; errors: string[] }>(`${this.endpoint}/delete-multiple`, { body: deviceCodes });
   }
 
   // === MÉTODOS DE UTILIDAD ===
@@ -130,6 +138,13 @@ export class DeviceApiService {
       errors.push('La fuente de datos debe ser un solo carácter');
     }
 
+    // Validar código del punto de venta
+    if (!device.posCode?.trim()) {
+      errors.push('El código del punto de venta es requerido');
+    } else if (device.posCode.length > 50) {
+      errors.push('El código del punto de venta no puede exceder 50 caracteres');
+    }
+
     return {
       isValid: errors.length === 0,
       errors
@@ -181,7 +196,8 @@ export class DeviceApiService {
       deviceName: '',
       enabled: 'Y',
       ipAddress: '',
-      dataSource: 'M' // Manual, ajustar según necesidades
+      dataSource: 'M', // Manual, ajustar según necesidades
+      posCode: ''
     };
   }
 
@@ -217,13 +233,14 @@ export class DeviceApiService {
    * Exporta dispositivos a CSV (utilidad para el componente)
    */
   exportDevicesToCSV(devices: Device[]): string {
-    const headers = ['Código', 'Nombre', 'IP', 'Estado', 'Fuente de Datos'];
+    const headers = ['Código', 'Nombre', 'IP', 'Estado', 'Fuente de Datos', 'Punto de Venta'];
     const csvData = devices.map(device => [
       device.deviceCode,
       device.deviceName,
       device.ipAddress,
       this.getEnabledLabel(device),
-      device.dataSource
+      device.dataSource,
+      device.posCode
     ]);
 
     const csvContent = [headers, ...csvData]
@@ -231,6 +248,35 @@ export class DeviceApiService {
       .join('\n');
 
     return csvContent;
+  }
+
+  /**
+   * Habilita/deshabilita múltiples dispositivos
+   */
+  toggleMultipleDevicesStatus(deviceCodes: string[], enabled: boolean): Observable<{ success: number; failed: number; errors: string[] }> {
+    return this.apiService.put<{ success: number; failed: number; errors: string[] }>(`${this.endpoint}/toggle-multiple`, { body: { deviceCodes, enabled } });
+  }
+
+  /**
+   * Genera un código de dispositivo único
+   */
+  generateDeviceCode(): string {
+    const now = new Date();
+    const timestamp = now.getFullYear().toString() +
+                     (now.getMonth() + 1).toString().padStart(2, '0') +
+                     now.getDate().toString().padStart(2, '0') +
+                     now.getHours().toString().padStart(2, '0') +
+                     now.getMinutes().toString().padStart(2, '0');
+    
+    const randomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `DEV_${timestamp}_${randomId}`;
+  }
+
+  /**
+   * Realiza ping a un dispositivo
+   */
+  pingDevice(device: Device): Observable<{ isReachable: boolean; responseTime?: number; error?: string }> {
+    return this.apiService.get<{ isReachable: boolean; responseTime?: number; error?: string }>(`${this.endpoint}/${device.deviceCode}/ping`);
   }
 
 }
