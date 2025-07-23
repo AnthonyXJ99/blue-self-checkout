@@ -3,7 +3,7 @@
  */
 export const API_CONFIG = {
   // URL base de la API
-  BASE_URL: 'http://192.168.18.43:5023/',
+  BASE_URL: 'http://192.168.20.10:9095/',
   
   // Endpoints específicos
   ENDPOINTS: {
@@ -23,11 +23,15 @@ export const API_CONFIG = {
     // Gallery
     GALLERY: 'api/gallery',
     IMAGES: 'api/images',
+
+    //Order
+    ORDERS: 'api/order',
     
     // Auth
     AUTH: 'api/auth',
     LOGIN: 'api/auth/login',
     LOGOUT: 'api/auth/logout',
+
     
     // Common
     COUNTRIES: 'api/countries',

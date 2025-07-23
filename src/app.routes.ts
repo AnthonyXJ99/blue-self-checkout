@@ -7,6 +7,7 @@ import { Notfound } from './app/pages/notfound/notfound';
 import { GalleryComponent } from './app/pages/gallery/gallery.component';
 import { DevicesComponent } from './app/pages/devices/device/devices.component';
 import { CustomerComponent } from './app/pages/customer/customer.component';
+import { OrderComponent } from './app/pages/orders/order/order.component';
 
 export const appRoutes: Routes = [
     {
@@ -20,7 +21,8 @@ export const appRoutes: Routes = [
             { path: 'products', loadChildren: () => import('./app/pages/products/products.routes') },
             { path: 'devices', loadChildren: () => import('./app/pages/devices/devices.routes') },
             { path: 'gallery', component: GalleryComponent },
-            { path: 'customer', component: CustomerComponent }
+            { path: 'customer', component: CustomerComponent },
+            { path: 'order', component: OrderComponent}
         ]
     },
     { path: 'landing', component: Landing },

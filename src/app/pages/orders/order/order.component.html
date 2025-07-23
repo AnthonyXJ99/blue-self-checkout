@@ -1,0 +1,705 @@
+<!-- ============================================ -->
+<!-- orders-crud.component.html -->
+<!-- ============================================ -->
+
+<!-- Toolbar Principal -->
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nueva Orden" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedOrders()" [disabled]="!selectedOrders() || !selectedOrders().length" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" class="mr-2" />
+        <p-button label="Exportar CSV" icon="pi pi-download" severity="success" (onClick)="exportCSV()" class="mr-2" />
+        <p-button label="Actualizar" icon="pi pi-refresh" (onClick)="loadOrders()" [loading]="loading()" />
+    </ng-template>
+</p-toolbar>
+
+<!-- Tabla Principal -->
+<p-table
+    #dt
+    [value]="orders()"
+    [rows]="pageSize()"
+    [paginator]="true"
+    [globalFilterFields]="['folioNum', 'customerName', 'customerCode', 'deviceCode', 'comments']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedOrders"
+    [rowHover]="true"
+    dataKey="docEntry"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} órdenes"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30, 50]"
+    [loading]="loading()"
+    [totalRecords]="totalRecords()"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+>
+    <!-- Caption con filtros -->
+    <ng-template #caption>
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <h5 class="m-0 text-xl font-bold">Gestión de Órdenes</h5>
+                    <p-chip [label]="totalRecords() + ' órdenes'" styleClass="bg-primary-100 text-primary-700" />
+                </div>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar órdenes..." />
+                </p-iconfield>
+            </div>
+            
+            <!-- Filtros avanzados -->
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Estado</label>
+                    <p-select 
+                        [options]="getStatusFilterOptions()" 
+                        [(ngModel)]="selectedStatus"
+                        (onChange)="onStatusFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Tipo Documento</label>
+                    <p-select 
+                        [options]="getDocTypeFilterOptions()" 
+                        [(ngModel)]="selectedDocType"
+                        (onChange)="onDocTypeFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Fecha Desde</label>
+                    <p-calendar 
+                        [(ngModel)]="startDate" 
+                        (onSelect)="onDateRangeFilter()"
+                        placeholder="dd/mm/aaaa"
+                        [showIcon]="true"
+                        variant="filled"
+                        fluid />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Fecha Hasta</label>
+                    <p-calendar 
+                        [(ngModel)]="endDate" 
+                        (onSelect)="onDateRangeFilter()"
+                        placeholder="dd/mm/aaaa"
+                        [showIcon]="true"
+                        variant="filled"
+                        fluid />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Total Mín.</label>
+                    <p-inputnumber 
+                        [(ngModel)]="minTotal" 
+                        mode="currency" 
+                        currency="USD"  
+                        locale="en-US"
+                        (onInput)="onTotalRangeFilter()"
+                        placeholder="$0"
+                        fluid />
+                </div>
+                <div class="flex items-end">
+                    <p-button 
+                        label="Aplicar" 
+                        icon="pi pi-filter" 
+                        size="small"
+                        (onClick)="applyFilters()"
+                        fluid />
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    
+    <!-- Header de la tabla -->
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="docEntry" style="min-width: 8rem">
+                ID
+                <p-sortIcon field="docEntry" />
+            </th>
+            <th pSortableColumn="folioNum" style="min-width: 12rem">
+                Folio
+                <p-sortIcon field="folioNum" />
+            </th>
+            <th style="min-width: 16rem">Cliente</th>
+            <th pSortableColumn="docDate" style="min-width: 12rem">
+                Fecha
+                <p-sortIcon field="docDate" />
+            </th>
+            <th pSortableColumn="docStatus" style="min-width: 10rem">
+                Estado
+                <p-sortIcon field="docStatus" />
+            </th>
+            <th pSortableColumn="docTotal" style="min-width: 12rem">
+                Total
+                <p-sortIcon field="docTotal" />
+            </th>
+            <th style="min-width: 10rem">Tipo</th>
+            <th style="min-width: 10rem">Flags</th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    
+    <!-- Body de la tabla -->
+    <ng-template pTemplate="body" let-order>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="order" />
+            </td>
+            <td style="min-width: 8rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold text-primary">{{ order.docEntry }}</span>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ getFullFolioNumber(order) }}</span>
+                    <small class="text-muted-color" *ngIf="order.deviceCode">Dispositivo: {{ order.deviceCode }}</small>
+                </div>
+            </td>
+            <td style="min-width: 16rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold" *ngIf="order.customerName">{{ order.customerName }}</span>
+                    <span class="text-muted-color text-sm" *ngIf="!order.customerName">Cliente no especificado</span>
+                    <small class="text-muted-color" *ngIf="order.customerCode">Código: {{ order.customerCode }}</small>
+                    <small class="text-primary" *ngIf="order.nickName">{{ order.nickName }}</small>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col">
+                    <span class="font-medium">{{ formatDate(order.docDate) }}</span>
+                    <small class="text-muted-color" *ngIf="order.docDueDate">Vence: {{ formatDate(order.docDueDate) }}</small>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <p-tag [value]="getStatusLabel(order.docStatus)" [severity]="getStatusSeverity(order.docStatus)" />
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold text-lg">{{ formatCurrency(order.docTotal) }}</span>
+                    <small class="text-muted-color" *ngIf="order.docTotalFC && order.docTotalFC !== order.docTotal">
+                        FC: {{ formatCurrency(order.docTotalFC) }}
+                    </small>
+                    <small class="text-muted-color" *ngIf="order.docRate && order.docRate !== 1">
+                        Tasa: {{ order.docRate }}
+                    </small>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex flex-col gap-1">
+                    <p-tag [value]="getDocTypeLabel(order.docType)" severity="info" />
+                    <p-tag [value]="getPaidTypeLabel(order.paidType)" severity="secondary" *ngIf="order.paidType" />
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex flex-wrap gap-1">
+                    <p-chip *ngIf="order.transferred === 'Y'" label="Transferido" styleClass="p-chip-sm bg-success-100 text-success-700" />
+                    <p-chip *ngIf="order.printed === 'Y'" label="Impreso" styleClass="p-chip-sm bg-info-100 text-info-700" />
+                    <p-chip *ngIf="order.orderLines && order.orderLines.length > 0" [label]="order.orderLines.length + ' líneas'" styleClass="p-chip-sm bg-surface-100 text-surface-700" />
+                </div>
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-eye" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        severity="info"
+                        (click)="viewOrder(order)" 
+                        pTooltip="Ver Detalle" />
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editOrder(order)" 
+                        [disabled]="!canEditOrder(order)"
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-print" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        severity="secondary"
+                        (click)="printOrder(order)" 
+                        pTooltip="Imprimir" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deleteOrder(order)" 
+                        [disabled]="!canDeleteOrder(order)"
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+    
+    <!-- Mensaje vacío -->
+    <ng-template pTemplate="emptymessage">
+        <tr>
+            <td colspan="10" class="text-center py-12">
+                <div class="flex flex-col items-center gap-4">
+                    <i class="pi pi-shopping-cart text-6xl text-muted-color"></i>
+                    <h6 class="text-xl font-medium text-muted-color">No se encontraron órdenes</h6>
+                    <p class="text-muted-color">Prueba ajustando los filtros o crea una nueva orden</p>
+                    <p-button label="Nueva Orden" icon="pi pi-plus" (onClick)="openNew()" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<!-- Dialog de Crear/Editar Orden -->
+<p-dialog 
+    [(visible)]="orderDialog" 
+    [style]="{ width: '95vw', maxWidth: '1400px', height: '90vh' }" 
+    [header]="isEditing() ? 'Editar Orden' : 'Nueva Orden'" 
+    [modal]="true" 
+    (onHide)="hideDialog()" 
+    [maximizable]="true">
+    
+    <ng-template #content>
+        <div *ngIf="order()" class="h-full">
+            <p-tabview class="h-full">
+                <!-- Pestaña Información General -->
+                <p-tabpanel header="Información General">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Columna Izquierda -->
+                        <div class="flex flex-col gap-4">
+                            <!-- Folio -->
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label for="folioPref" class="block font-bold mb-3">Prefijo</label>
+                                    <input type="text" pInputText id="folioPref" [(ngModel)]="order()!.folioPref" maxlength="5" fluid />
+                                </div>
+                                <div class="col-span-2">
+                                    <label for="folioNum" class="block font-bold mb-3">Número de Folio *</label>
+                                    <input type="text" pInputText id="folioNum" [(ngModel)]="order()!.folioNum" required fluid />
+                                    <small class="text-red-500" *ngIf="submitted() && !order()!.folioNum">El folio es requerido.</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Cliente -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="customerCode" class="block font-bold mb-3">Código Cliente</label>
+                                    <input type="text" pInputText id="customerCode" [(ngModel)]="order()!.customerCode" fluid />
+                                </div>
+                                <div>
+                                    <label for="nickName" class="block font-bold mb-3">Nickname</label>
+                                    <input type="text" pInputText id="nickName" [(ngModel)]="order()!.nickName" fluid />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="customerName" class="block font-bold mb-3">Nombre del Cliente</label>
+                                <input type="text" pInputText id="customerName" [(ngModel)]="order()!.customerName" fluid />
+                            </div>
+
+                            <!-- Fechas -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="docDate" class="block font-bold mb-3">Fecha Documento</label>
+                                    <p-calendar id="docDate" [(ngModel)]="order()!.docDate" [showIcon]="true" dateFormat="dd/mm/yy" fluid />
+                                </div>
+                                <div>
+                                    <label for="docDueDate" class="block font-bold mb-3">Fecha Vencimiento</label>
+                                    <p-calendar id="docDueDate" [(ngModel)]="order()!.docDueDate" [showIcon]="true" dateFormat="dd/mm/yy" fluid />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Columna Derecha -->
+                        <div class="flex flex-col gap-4">
+                            <!-- Estados y Tipos -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="docStatus" class="block font-bold mb-3">Estado</label>
+                                    <p-select 
+                                        id="docStatus"
+                                        [options]="statusOptions" 
+                                        [(ngModel)]="order()!.docStatus"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        placeholder="Seleccionar estado"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
+                                <div>
+                                    <label for="docType" class="block font-bold mb-3">Tipo Documento</label>
+                                    <p-select 
+                                        id="docType"
+                                        [options]="docTypeOptions" 
+                                        [(ngModel)]="order()!.docType"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        placeholder="Seleccionar tipo"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="paidType" class="block font-bold mb-3">Tipo de Pago</label>
+                                    <p-select 
+                                        id="paidType"
+                                        [options]="paidTypeOptions" 
+                                        [(ngModel)]="order()!.paidType"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        placeholder="Seleccionar pago"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
+                                <div>
+                                    <label for="deviceCode" class="block font-bold mb-3">Dispositivo</label>
+                                    <input type="text" pInputText id="deviceCode" [(ngModel)]="order()!.deviceCode" fluid />
+                                </div>
+                            </div>
+
+                            <!-- Totales -->
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label for="docRate" class="block font-bold mb-3">Tasa Cambio</label>
+                                    <p-inputnumber id="docRate" [(ngModel)]="order()!.docRate" [minFractionDigits]="4" [maxFractionDigits]="6" fluid />
+                                </div>
+                                <div>
+                                    <label for="docTotal" class="block font-bold mb-3">Total Local</label>
+                                    <p-inputnumber id="docTotal" [(ngModel)]="order()!.docTotal" mode="currency" currency="USD" [min]="0" fluid />
+                                </div>
+                                <div>
+                                    <label for="docTotalFC" class="block font-bold mb-3">Total Extranjero</label>
+                                    <p-inputnumber id="docTotalFC" [(ngModel)]="order()!.docTotalFC" mode="currency" currency="USD" [min]="0" fluid />
+                                </div>
+                            </div>
+
+                            <!-- Flags -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="transferred" class="block font-bold mb-3">Transferido</label>
+                                    <p-select 
+                                        id="transferred"
+                                        [options]="yesNoOptions" 
+                                        [(ngModel)]="order()!.transferred"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
+                                <div>
+                                    <label for="printed" class="block font-bold mb-3">Impreso</label>
+                                    <p-select 
+                                        id="printed"
+                                        [options]="yesNoOptions" 
+                                        [(ngModel)]="order()!.printed"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        variant="filled"
+                                        fluid>
+                                    </p-select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Comentarios -->
+                    <div class="mt-6">
+                        <label for="comments" class="block font-bold mb-3">Comentarios</label>
+                        <textarea id="comments" pTextarea [(ngModel)]="order()!.comments" rows="3" fluid 
+                                 placeholder="Comentarios adicionales sobre la orden"></textarea>
+                    </div>
+                </p-tabpanel>
+                
+                <!-- Pestaña Líneas -->
+                <p-tabpanel [header]="'Líneas (' + orderLines().length + ')'">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center">
+                            <h6 class="font-semibold">Líneas de la Orden</h6>
+                            <p-button label="Agregar Línea" icon="pi pi-plus" severity="secondary" (onClick)="addOrderLine()" />
+                        </div>
+                        
+                        <div class="space-y-4" *ngIf="orderLines().length > 0">
+                            <div *ngFor="let line of orderLines(); let i = index" 
+                                 class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
+                                <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                                    <div>
+                                        <label class="block font-medium mb-2">Código Item *</label>
+                                        <input type="text" pInputText [(ngModel)]="line.itemCode" placeholder="PROD001" fluid />
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">Nombre Item *</label>
+                                        <input type="text" pInputText [(ngModel)]="line.itemName" placeholder="Nombre del producto" fluid />
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">Cantidad</label>
+                                        <p-inputnumber [(ngModel)]="line.quantity" [min]="1" [showButtons]="true" 
+                                                      (onInput)="calculateLineTotal(line)" fluid />
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">Precio</label>
+                                        <p-inputnumber [(ngModel)]="line.price" mode="currency" currency="USD" [min]="0" 
+                                                      (onInput)="calculateLineTotal(line)" fluid />
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">Total Línea</label>
+                                        <p-inputnumber [(ngModel)]="line.lineTotal" mode="currency" currency="USD" [readonly]="true" fluid />
+                                    </div>
+                                    <div class="flex items-end">
+                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" 
+                                                 (click)="removeOrderLine(i)" pTooltip="Eliminar línea" />
+                                    </div>
+                                </div>
+                                <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block font-medium mb-2">Estado Línea</label>
+                                        <p-select 
+                                            [options]="lineStatusOptions" 
+                                            [(ngModel)]="line.lineStatus"
+                                            optionLabel="label" 
+                                            optionValue="value"
+                                            placeholder="Estado de la línea"
+                                            variant="filled"
+                                            fluid>
+                                        </p-select>
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">Código de Impuesto</label>
+                                        <input type="text" pInputText [(ngModel)]="line.taxCode" placeholder="IVA" fluid />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div *ngIf="orderLines().length === 0" class="text-center text-muted-color py-12">
+                            <i class="pi pi-list text-6xl mb-4 block"></i>
+                            <h6 class="text-xl mb-2">No hay líneas agregadas</h6>
+                            <p class="mb-4">Agrega productos o servicios a la orden</p>
+                            <p-button label="Agregar Primera Línea" icon="pi pi-plus" (onClick)="addOrderLine()" />
+                        </div>
+
+                        <!-- Resumen de totales -->
+                        <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="orderLines().length > 0">
+                            <h6 class="font-semibold mb-3">Resumen de Totales</h6>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="text-center">
+                                    <span class="block text-sm text-muted-color">Total Líneas</span>
+                                    <span class="text-xl font-bold">{{ orderLines().length }}</span>
+                                </div>
+                                <div class="text-center">
+                                    <span class="block text-sm text-muted-color">Cantidad Total</span>
+                                    <span class="text-xl font-bold">{{ getTotalQuantity() }}</span>
+                                </div>
+                                <div class="text-center">
+                                    <span class="block text-sm text-muted-color">Total General</span>
+                                    <span class="text-xl font-bold text-primary">{{ formatCurrency(getTotalAmount()) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </p-tabpanel>
+            </p-tabview>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-between items-center w-full">
+            <div class="text-sm text-muted-color">
+                <span *ngIf="orderLines().length > 0">{{ orderLines().length }} línea(s) • Total: {{ formatCurrency(getTotalAmount()) }}</span>
+            </div>
+            <div class="flex gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
+                <p-button label="Guardar" icon="pi pi-check" [loading]="saving()" (click)="saveOrder()" />
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog de Ver Detalle -->
+<p-dialog 
+    [(visible)]="viewDialog" 
+    [style]="{ width: '90vw', maxWidth: '1200px' }" 
+    header="Detalle de la Orden" 
+    [modal]="true" 
+    (onHide)="hideViewDialog()">
+    
+    <ng-template #content>
+        <div *ngIf="selectedOrder()" class="space-y-6">
+            <!-- Header de la orden -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-6 rounded-lg">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h6 class="font-semibold text-lg mb-4">Información General</h6>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="font-medium">ID:</span>
+                                <span class="text-primary font-bold">{{ selectedOrder()!.docEntry }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Folio:</span>
+                                <span class="font-semibold">{{ getFullFolioNumber(selectedOrder()!) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Estado:</span>
+                                <p-tag [value]="getStatusLabel(selectedOrder()!.docStatus)" [severity]="getStatusSeverity(selectedOrder()!.docStatus)" />
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Tipo:</span>
+                                <p-tag [value]="getDocTypeLabel(selectedOrder()!.docType)" severity="info" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h6 class="font-semibold text-lg mb-4">Cliente</h6>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="font-medium">Nombre:</span>
+                                <span>{{ selectedOrder()!.customerName || 'No especificado' }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">Código:</span>
+                                <span>{{ selectedOrder()!.customerCode || 'N/A' }}</span>
+                            </div>
+                            <div class="flex justify-between" *ngIf="selectedOrder()!.nickName">
+                                <span class="font-medium">Nickname:</span>
+                                <span class="text-primary">{{ selectedOrder()!.nickName }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h6 class="font-semibold text-lg mb-4">Totales</h6>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="font-medium">Total:</span>
+                                <span class="text-xl font-bold text-primary">{{ formatCurrency(selectedOrder()!.docTotal) }}</span>
+                            </div>
+                            <div class="flex justify-between" *ngIf="selectedOrder()!.docTotalFC !== selectedOrder()!.docTotal">
+                                <span class="font-medium">Total FC:</span>
+                                <span>{{ formatCurrency(selectedOrder()!.docTotalFC) }}</span>
+                            </div>
+                            <div class="flex justify-between" *ngIf="selectedOrder()!.docRate && selectedOrder()!.docRate !== 1">
+                                <span class="font-medium">Tasa:</span>
+                                <span>{{ selectedOrder()!.docRate }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fechas y flags -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                    <h6 class="font-semibold mb-3">Fechas</h6>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Documento:</span>
+                            <span>{{ formatDate(selectedOrder()!.docDate) }}</span>
+                        </div>
+                        <div class="flex justify-between" *ngIf="selectedOrder()!.docDueDate">
+                            <span>Vencimiento:</span>
+                            <span>{{ formatDate(selectedOrder()!.docDueDate) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                    <h6 class="font-semibold mb-3">Estados</h6>
+                    <div class="flex flex-wrap gap-2">
+                        <p-chip *ngIf="selectedOrder()!.transferred === 'Y'" label="Transferido" styleClass="bg-success-100 text-success-700" />
+                        <p-chip *ngIf="selectedOrder()!.printed === 'Y'" label="Impreso" styleClass="bg-info-100 text-info-700" />
+                        <p-chip *ngIf="selectedOrder()!.paidType" [label]="'Pago: ' + getPaidTypeLabel(selectedOrder()!.paidType)" styleClass="bg-secondary-100 text-secondary-700" />
+                        <p-chip *ngIf="selectedOrder()!.deviceCode" [label]="'Dispositivo: ' + selectedOrder()!.deviceCode" styleClass="bg-surface-100 text-surface-700" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comentarios -->
+            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="selectedOrder()!.comments">
+                <h6 class="font-semibold mb-3">Comentarios</h6>
+                <p class="text-muted-color">{{ selectedOrder()!.comments }}</p>
+            </div>
+
+            <!-- Líneas de la orden -->
+            <div>
+                <h6 class="font-semibold text-lg mb-4">Líneas de la Orden ({{ selectedOrder()?.orderLines?.length || 0 }})</h6>
+                <div *ngIf="selectedOrder() as order">
+                    <div *ngIf="order.orderLines && order.orderLines.length > 0" class="space-y-3">
+                        <div *ngFor="let line of order.orderLines; let i = index" 
+                             class="border border-surface-200 dark:border-surface-700 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                <div>
+                                    <span class="text-sm font-medium text-muted-color">Código</span>
+                                    <p class="font-semibold">{{ line.itemCode }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-muted-color">Producto</span>
+                                    <p class="font-semibold">{{ line.itemName }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-muted-color">Cantidad</span>
+                                    <p class="font-semibold">{{ line.quantity }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-muted-color">Precio</span>
+                                    <p class="font-semibold">{{ formatCurrency(line.price) }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-muted-color">Total</span>
+                                    <p class="font-semibold text-primary">{{ formatCurrency(line.lineTotal) }}</p>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex gap-2" *ngIf="line.lineStatus || line.taxCode">
+                                <p-tag *ngIf="line.lineStatus" [value]="'Estado: ' + line.lineStatus" severity="secondary" />
+                                <p-tag *ngIf="line.taxCode" [value]="'Impuesto: ' + line.taxCode" severity="info" />
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="!order.orderLines || order.orderLines.length === 0" 
+                         class="text-center text-muted-color py-8">
+                        <i class="pi pi-list text-4xl mb-2 block"></i>
+                        <p>No hay líneas en esta orden</p>
+                    </div>
+                </div>
+             </div>
+
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-between items-center w-full">
+            <div class="flex gap-2">
+                <p-button label="Editar" icon="pi pi-pencil" outlined [disabled]="!canEditOrder(selectedOrder()!)" (click)="editFromView()" />
+                <p-button label="Imprimir" icon="pi pi-print" outlined severity="secondary" (click)="printOrder(selectedOrder()!)" />
+            </div>
+            <p-button label="Cerrar" icon="pi pi-times" (click)="hideViewDialog()" />
+        </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Confirmations y Toast -->
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" 
+                 acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

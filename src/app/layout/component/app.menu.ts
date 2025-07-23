@@ -48,6 +48,11 @@ export class AppMenu {
                 items: [{ label: 'Clientes', icon: 'pi pi-fw pi-user', routerLink: ['/customer'] }]
             },
 
+            {
+                label: 'Pedidos',
+                items: [{label: 'Pedidos', icon: 'pi  pi-fw pi-box', routerLink:['/order']}]
+            }
+
             /* {
                 label: 'UI Components',
                 items: [
