@@ -8,7 +8,8 @@ import {
   OrderCreateDto,
   OrderUpdateDto,
   OrderResponseDto,
-  OrderFilterParams
+  OrderFilterParams,
+  OrderApiResponse
 } from '../orders/order/model/order.model';
 
 /**
@@ -29,7 +30,7 @@ export class OrderService {
   /**
    * Obtiene todas las órdenes con paginación y filtros
    */
-  getOrders(params?: OrderFilterParams): Observable<ApiResponse<OrderResponseDto>> {
+  getOrders(params?: OrderFilterParams): Observable<OrderApiResponse<OrderResponseDto>> {
     return this.orderRepository.findAll(params);
   }
 
@@ -92,7 +93,7 @@ export class OrderService {
   /**
    * Busca órdenes con filtro general
    */
-  searchOrders(searchTerm: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<OrderResponseDto>> {
+  searchOrders(searchTerm: string, page: number = 1, pageSize: number = 10): Observable<OrderApiResponse<OrderResponseDto>> {
     return this.orderRepository.search(searchTerm, page, pageSize);
   }
 
@@ -139,7 +140,7 @@ export class OrderService {
   /**
    * Obtiene órdenes del día
    */
-  getTodayOrders(): Observable<ApiResponse<OrderResponseDto>> {
+  getTodayOrders(): Observable<OrderApiResponse<OrderResponseDto>> {
     return this.orderRepository.findTodayOrders();
   }
 

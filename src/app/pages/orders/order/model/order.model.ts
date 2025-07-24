@@ -162,7 +162,21 @@ export interface Order {
   /**
    * Respuesta paginada de órdenes (usando ApiResponse existente)
    */
-  export type OrderPagedResponse = ApiResponse<OrderResponseDto>;
+  /**
+ * ApiResponse extendida para órdenes con campos adicionales
+ */
+export interface OrderApiResponse<T> extends ApiResponse<T> {
+  totalRecords: number;     // ✅ Campo que devuelve tu API
+  totalPages: number;       // ✅ Campo adicional de tu API  
+  hasNextPage: boolean;     // ✅ Campo adicional
+  hasPreviousPage: boolean; // ✅ Campo adicional
+}
+
+/**
+ * Respuesta paginada específica para órdenes
+ */
+  export type OrderPagedResponse = OrderApiResponse<OrderResponseDto>;
+
   
   /**
    * Parámetros de filtro para órdenes

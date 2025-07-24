@@ -10,7 +10,8 @@ import {
   OrderCreateDto,
   OrderUpdateDto,
   OrderResponseDto,
-  OrderFilterParams
+  OrderFilterParams,
+  OrderApiResponse
 } from '../model/order.model';
 
 /**
@@ -33,10 +34,17 @@ export class OrderRepository {
   /**
    * Obtiene todas las órdenes con paginación y filtros
    */
-  findAll(params?: OrderFilterParams): Observable<ApiResponse<OrderResponseDto>> {
-    return this.apiService.getPaginated<OrderResponseDto>(
+  findAll(params?: OrderFilterParams): Observable<OrderApiResponse<OrderResponseDto>> {
+    console.log('🔍 Repository - Params enviados:', params);
+    
+    return this.apiService.get<OrderApiResponse<OrderResponseDto>>(
       this.endpoint,
       params
+    ).pipe(
+      map(response => {
+        console.log('🔍 Repository - Response recibida:', response);
+        return response;
+      })
     );
   }
 
@@ -118,7 +126,7 @@ export class OrderRepository {
   /**
    * Busca órdenes con filtro de texto
    */
-  search(searchTerm: string, page: number = 1, pageSize: number = 10): Observable<ApiResponse<OrderResponseDto>> {
+  search(searchTerm: string, page: number = 1, pageSize: number = 10): Observable<OrderApiResponse<OrderResponseDto>> {
     const params: OrderFilterParams = {
       filter: searchTerm,
       page,
@@ -135,7 +143,7 @@ export class OrderRepository {
   /**
    * Obtiene órdenes del día actual
    */
-  findTodayOrders(): Observable<ApiResponse<OrderResponseDto>> {
+  findTodayOrders(): Observable<OrderApiResponse<OrderResponseDto>> {
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);

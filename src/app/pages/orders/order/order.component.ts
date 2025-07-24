@@ -28,7 +28,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { OrderService } from '../../service/order.service';
-import { OrderResponseDto, OrderCreateDto, OrderUpdateDto, OrderFilterParams, DocumentLineCreateDto, DocumentLineUpdateDto } from '../order/model/order.model';
+import { OrderResponseDto, OrderCreateDto, OrderUpdateDto, OrderFilterParams, DocumentLineCreateDto, DocumentLineUpdateDto, OrderApiResponse } from '../order/model/order.model';
 
 interface Column {
     field: string;
@@ -148,11 +148,16 @@ export class OrderComponent implements OnInit {
             page: this.currentPage(),
             pageSize: this.pageSize()
         };
-
+    
         this.orderService.getOrders(params).subscribe({
-            next: (response) => {
+            next: (response: OrderApiResponse<OrderResponseDto>) => {
+                console.log('📋 Response completa:', response);
+                console.log('📊 Total records:', response.totalRecords);
+                console.log('📄 Current page:', response.pageNumber);
+                console.log('📈 Total pages:', response.totalPages);
+                
                 this.orders.set(response.data);
-                this.totalRecords.set(response.totalCount);
+                this.totalRecords.set(response.totalRecords); // ✅ Ahora existe!
                 this.loading.set(false);
             },
             error: (error) => {

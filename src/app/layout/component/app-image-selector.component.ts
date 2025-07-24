@@ -357,7 +357,7 @@ export class ImageSelectorComponent implements OnInit {
   @Input() selectedImageTitle: string = '';
   @Input() filterByType: ImageType | null = null; // Para filtrar por tipo específico
   
-  @Output() imageSelected = new EventEmitter<{ url: string; title: string; imageCode: string }>();
+  @Output() imageSelected = new EventEmitter<{ url: string; title: string; imageCode: string  }>();
   @Output() imageCleared = new EventEmitter<void>();
 
   // Estados del componente

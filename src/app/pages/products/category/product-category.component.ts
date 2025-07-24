@@ -275,8 +275,7 @@ export class ProductCategoryComponent implements OnInit {
     if (!currentCategory?.categoryItemCode?.trim() || !currentCategory?.categoryItemName?.trim()) {
       return;
     }
-
-    // Validar datos usando el repository
+        // Validar datos usando el repository
     const validation = this.categoryRepository.validateProductCategoryData(currentCategory);
     if (!validation.isValid) {
       this.messageService.add({
@@ -290,6 +289,9 @@ export class ProductCategoryComponent implements OnInit {
 
     this.loading.set(true);
 
+    //recupeamos la ulr de la imagen
+    const imagePath = this.extractImagePath(currentCategory.imageUrl || '');
+
     // Verificar si es actualización o creación
     const isUpdate = this.isExistingCategory(currentCategory.categoryItemCode);
 
@@ -299,7 +301,7 @@ export class ProductCategoryComponent implements OnInit {
         categoryItemCode: currentCategory.categoryItemCode,
         categoryItemName: currentCategory.categoryItemName,
         frgnName: currentCategory.frgnName,
-        imageUrl: currentCategory.imageUrl,
+        imageUrl: imagePath,
         description: currentCategory.description,
         frgnDescription: currentCategory.frgnDescription,
         visOrder: currentCategory.visOrder,
@@ -347,7 +349,7 @@ export class ProductCategoryComponent implements OnInit {
         categoryItemCode: currentCategory.categoryItemCode,
         categoryItemName: currentCategory.categoryItemName,
         frgnName: currentCategory.frgnName,
-        imageUrl: currentCategory.imageUrl,
+        imageUrl: imagePath,
         description: currentCategory.description,
         frgnDescription: currentCategory.frgnDescription,
         visOrder: currentCategory.visOrder,
@@ -389,6 +391,38 @@ export class ProductCategoryComponent implements OnInit {
             });
           }
         });
+    }
+  }
+
+
+  private extractImagePath(imageUrl: string): string {
+    if (!imageUrl || imageUrl.trim() === '') {
+      return '';
+    }
+  
+    try {
+      // Si es una URL completa, extraer solo la parte de la ruta
+      if (imageUrl.includes('http://') || imageUrl.includes('https://')) {
+        const url = new URL(imageUrl);
+        return url.pathname;
+      }
+      
+      // Si ya es una ruta relativa, verificar que tenga el formato correcto
+      if (imageUrl.startsWith('/images/')) {
+        return imageUrl;
+      }
+      
+      // Si solo es el nombre del archivo, agregar el prefijo
+      if (!imageUrl.startsWith('/')) {
+        return `/images/${imageUrl}`;
+      }
+      
+      return imageUrl;
+    } catch (error) {
+      console.warn('Error parsing image URL:', error);
+      // Si hay error, asumir que es solo el nombre del archivo
+      const fileName = imageUrl.split('/').pop() || imageUrl;
+      return `/images/${fileName}`;
     }
   }
 

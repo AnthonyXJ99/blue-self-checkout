@@ -287,6 +287,9 @@ export class ProductGroupComponent implements OnInit {
 
     this.loading.set(true);
 
+    // Extraer la ruta de la imagen antes de enviar
+    const imagePath = this.extractImagePath(currentGroup.imageUrl || '');
+
     // Verificar si es actualización o creación
     const isUpdate = this.isExistingProductGroup(currentGroup.productGroupCode);
 
@@ -296,7 +299,7 @@ export class ProductGroupComponent implements OnInit {
         productGroupCode: currentGroup.productGroupCode,
         productGroupName: currentGroup.productGroupName,
         frgnName: currentGroup.frgnName,
-        imageUrl: currentGroup.imageUrl,
+        imageUrl: imagePath,
         description: currentGroup.description,
         frgnDescription: currentGroup.frgnDescription,
         enabled: currentGroup.enabled,
@@ -345,7 +348,7 @@ export class ProductGroupComponent implements OnInit {
         productGroupCode: currentGroup.productGroupCode,
         productGroupName: currentGroup.productGroupName,
         frgnName: currentGroup.frgnName,
-        imageUrl: currentGroup.imageUrl,
+        imageUrl: imagePath,
         description: currentGroup.description,
         frgnDescription: currentGroup.frgnDescription,
         enabled: currentGroup.enabled,
@@ -391,6 +394,40 @@ export class ProductGroupComponent implements OnInit {
     }
   }
 
+  
+// Agregar este método utilitario en tu componente
+private extractImagePath(imageUrl: string): string {
+  if (!imageUrl || imageUrl.trim() === '') {
+    return '';
+  }
+
+  try {
+    // Si es una URL completa, extraer solo la parte de la ruta
+    if (imageUrl.includes('http://') || imageUrl.includes('https://')) {
+      const url = new URL(imageUrl);
+      return url.pathname;
+    }
+    
+    // Si ya es una ruta relativa, verificar que tenga el formato correcto
+    if (imageUrl.startsWith('/images/')) {
+      return imageUrl;
+    }
+    
+    // Si solo es el nombre del archivo, agregar el prefijo
+    if (!imageUrl.startsWith('/')) {
+      return `/images/${imageUrl}`;
+    }
+    
+    return imageUrl;
+  } catch (error) {
+    console.warn('Error parsing image URL:', error);
+    // Si hay error, asumir que es solo el nombre del archivo
+    const fileName = imageUrl.split('/').pop() || imageUrl;
+    return `/images/${fileName}`;
+  }
+}
+
+
   isExistingProductGroup(groupCode: string): boolean {
     return this.productGroups().some(group => group.productGroupCode === groupCode);
   }
@@ -399,6 +436,7 @@ export class ProductGroupComponent implements OnInit {
 
   onImageSelected(imageData: { url: string; title: string; imageCode: string }) {
     const currentGroup = this.productGroup();
+    
     if (currentGroup) {
       this.productGroup.set({
         ...currentGroup,
