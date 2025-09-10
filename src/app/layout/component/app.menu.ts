@@ -27,8 +27,8 @@ export class AppMenu {
             {
                 label: 'Dispositivos',
                 items: [
-                    { label: 'Dispositivos', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices/devices'] },
-                    { label: 'OPOS', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices/opos'] }
+                    { label: 'POS', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices/opos'] },
+                    { label: 'Dispositivos', icon: 'pi pi-fw pi-mobile', routerLink: ['/devices/devices'] }
                 ]
             },
             {
@@ -38,9 +38,11 @@ export class AppMenu {
             {
                 label: 'Productos',
                 items: [
-                    { label: 'Grupos de Productos', icon: 'pi pi-fw pi-list', routerLink: ['/products/product-group'] },
+                    { label: 'Grupo', icon: 'pi pi-fw pi-list', routerLink: ['/products/product-group'] },
                     { label: 'Categorías', icon: 'pi pi-fw pi-list', routerLink: ['/products/category'] }, 
-                    { label: 'Productos', icon: 'pi pi-fw pi-list', routerLink: ['/products/product'] }
+                    { label: 'Productos', icon: 'pi pi-fw pi-list', routerLink: ['/products/product'] },
+                    { label: 'Lista de Ingredientes', icon: 'pi pi-fw pi-sitemap', routerLink: ['/products/ingredients'] },
+                    { label: 'Acompañamientos', icon: 'pi pi-fw pi-plus-circle', routerLink: ['/products/accompaniments'] }
                 ]
             },
             {

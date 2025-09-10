@@ -8,7 +8,7 @@ export interface ProductMaterial {
     itemName: string;
     quantity: number;
     imageUrl?: string;
-    isPrimary: string;              // Y/N
+    isCustomizable: string;              // Y/N
     productItemCode: string;
   }
   

@@ -3,7 +3,9 @@
  */
 export const API_CONFIG = {
   // URL base de la API
-  BASE_URL: 'http://192.168.20.10:9095/',
+  //BASE_URL: 'http://192.168.20.10:9095/',
+  //BASE_URL: 'http://192.168.18.43:5023/',
+  BASE_URL: 'https://localhost:7115/',
   
   // Endpoints específicos
   ENDPOINTS: {
@@ -16,6 +18,8 @@ export const API_CONFIG = {
     // Products
     PRODUCTS: 'api/products',
     CATEGORIES: 'api/categories',
+    PRODUCT_TREES: 'api/producttrees',
+    ACCOMPANIMENTS: 'api/accompaniments',
     
     // Devices
     DEVICES: 'api/devices',

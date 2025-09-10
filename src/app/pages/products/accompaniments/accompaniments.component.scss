@@ -1,0 +1,291 @@
+// Componente de Acompañamientos
+// Siguiendo los patrones de estilo del proyecto
+
+.accompaniments-container {
+  .stats-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .category-card {
+    transition: box-shadow 0.2s ease-in-out;
+    
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .accompaniment-card {
+    transition: all 0.2s ease-in-out;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-color: var(--primary-color);
+    }
+
+    .accompaniment-image {
+      transition: transform 0.2s ease-in-out;
+      
+      &:hover {
+        transform: scale(1.05);
+      }
+    }
+  }
+
+  .price-display {
+    .original-price {
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .discounted-price {
+      font-weight: 600;
+      color: var(--green-500);
+    }
+  }
+
+  .enlargement-info {
+    background: rgba(var(--surface-200), 0.3);
+    border-left: 3px solid var(--primary-color);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .accompaniments-container {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .accompaniment-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .accompaniments-container {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Dark mode specific styles
+:host-context(.dark) {
+  .accompaniments-container {
+    .category-card {
+      border-color: var(--surface-700);
+      
+      &:hover {
+        border-color: var(--primary-400);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .accompaniment-card {
+      border-color: var(--surface-700);
+      
+      &:hover {
+        border-color: var(--primary-400);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+}
+
+// Loading and empty states
+.loading-container {
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+}
+
+.empty-state {
+  .empty-icon {
+    color: var(--text-color-secondary);
+    opacity: 0.6;
+  }
+}
+
+// Animation keyframes
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+// Custom scrollbar for dialogs
+.dialog-content {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--surface-100);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--surface-400);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--surface-500);
+    }
+  }
+}
+
+// PrimeNG component overrides
+::ng-deep {
+  .p-dialog .p-dialog-content {
+    padding: 1.5rem;
+  }
+
+  .p-autocomplete-panel {
+    max-height: 200px;
+  }
+
+  .p-tag {
+    &.discount-tag {
+      background: linear-gradient(45deg, var(--green-500), var(--green-600));
+      color: white;
+      font-weight: 500;
+    }
+  }
+
+  .p-chip {
+    &.category-chip {
+      background-color: var(--primary-100);
+      color: var(--primary-800);
+    }
+  }
+
+  .p-button {
+    &.action-button {
+      transition: all 0.2s ease-in-out;
+      
+      &:hover {
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  // Toolbar improvements
+  .p-toolbar {
+    border-radius: 8px;
+    border: 1px solid var(--surface-200);
+    
+    .p-toolbar-group-start {
+      .p-button {
+        margin-right: 0.5rem;
+      }
+    }
+
+    .p-toolbar-group-end {
+      .p-button {
+        margin-left: 0.5rem;
+      }
+    }
+  }
+
+  // Table responsive improvements
+  .p-datatable {
+    .p-datatable-wrapper {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .p-datatable-thead > tr > th {
+      background-color: var(--surface-50);
+      border-bottom: 2px solid var(--surface-200);
+      font-weight: 600;
+      padding: 1rem;
+    }
+
+    .p-datatable-tbody > tr {
+      transition: background-color 0.2s ease-in-out;
+      
+      &:hover {
+        background-color: var(--surface-50);
+      }
+      
+      > td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--surface-200);
+      }
+    }
+  }
+
+  // Card improvements
+  .p-card {
+    border-radius: 12px;
+    border: 1px solid var(--surface-200);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease-in-out;
+    
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .p-card-header {
+      padding: 1.5rem 1.5rem 0;
+    }
+
+    .p-card-body {
+      padding: 1.5rem;
+    }
+
+    .p-card-footer {
+      padding: 0 1.5rem 1.5rem;
+    }
+  }
+}
+
+// Utility classes
+.text-gradient {
+  background: linear-gradient(45deg, var(--primary-500), var(--primary-700));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.shadow-soft {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.border-gradient {
+  border: 1px solid;
+  border-image: linear-gradient(45deg, var(--primary-400), var(--primary-600)) 1;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+}

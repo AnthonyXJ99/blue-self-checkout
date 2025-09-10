@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
@@ -29,6 +30,7 @@ import { finalize } from 'rxjs/operators';
 import { ProductRepository } from './repositories/product.repository';
 import { ProductGroupRepository } from '../product-group/repositories/product-group.repository';
 import { ProductCategoryRepository } from '../category/repositories/product-category.repository';
+import { ProductTreeApiService } from '../../service/product-tree-api.service';
 import { Product, ProductCreateRequest, ProductUpdateRequest, ProductMaterial, ProductAccompaniment } from './model/product.model';
 import { ProductGroup } from '../product-group/model/product-group.model';
 import { ProductCategory } from '../category/model/product-category.model'; 
@@ -43,6 +45,7 @@ interface ProductItem extends Product {}
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     ButtonModule,
     InputTextModule,
     TextareaModule,
@@ -102,18 +105,24 @@ export class ProductComponent implements OnInit {
   // Materiales y acompañamientos
   materials = signal<ProductMaterial[]>([]);
   accompaniments = signal<ProductAccompaniment[]>([]);
+  
+  // Ingredientes disponibles
+  availableIngredients = signal<number>(0);
 
   constructor(
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
     private productRepository: ProductRepository,
     private productGroupRepository: ProductGroupRepository,
-    private productCategoryRepository: ProductCategoryRepository
+    private productCategoryRepository: ProductCategoryRepository,
+    private productTreeApiService: ProductTreeApiService,
+    private router: Router
   ) {}
 
   ngOnInit() {
     console.log('ProductComponent initialized');
     this.loadProductGroups();
+    this.loadAvailableIngredients();
     this.loadProductCategories();
     this.loadProducts();
   }
@@ -462,7 +471,7 @@ export class ProductComponent implements OnInit {
       itemName: '',
       quantity: 1,
       imageUrl: '',
-      isPrimary: 'N',
+      isCustomizable: 'N',
       productItemCode: this.product()?.itemCode || ''
     };
     this.materials.set([...this.materials(), newMaterial]);
@@ -698,7 +707,7 @@ export class ProductComponent implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return this.productRepository.formatPrice(price, '$');
+    return this.productRepository.formatPrice(price, 'CLP$');
   }
 
   onGlobalFilter(table: Table, event: Event) {
@@ -733,5 +742,28 @@ export class ProductComponent implements OnInit {
 
   getProductStats() {
     return this.productRepository.getProductStats(this.products());
+  }
+
+  // ============================================
+  // INGREDIENTES MANAGEMENT
+  // ============================================
+
+  loadAvailableIngredients() {
+    this.productTreeApiService.getAll().subscribe({
+      next: (ingredients) => {
+        this.availableIngredients.set(ingredients.length);
+      },
+      error: () => {
+        this.availableIngredients.set(0);
+      }
+    });
+  }
+
+  navigateToIngredients() {
+    this.router.navigate(['/products/ingredients']);
+  }
+
+  hasAvailableIngredients(): boolean {
+    return this.availableIngredients() > 0;
   }
 }

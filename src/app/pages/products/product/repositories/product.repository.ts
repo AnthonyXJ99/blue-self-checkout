@@ -330,9 +330,9 @@ export class ProductRepository {
   }
 
   /**
-   * Formatea el precio para mostrar
+   * Formatea el precio para mostrar en pesos chilenos
    */
-  formatPrice(price: number, currency: string = '$'): string {
+  formatPrice(price: number, currency: string = 'CLP$'): string {
     return this.productsService.formatPrice(price, currency);
   }
 

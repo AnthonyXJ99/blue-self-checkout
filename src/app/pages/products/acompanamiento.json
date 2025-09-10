@@ -1,0 +1,561 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "BlueSelfCheckout Accompaniments API",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/accompaniments": {
+      "get": {
+        "tags": ["Accompaniments"],
+        "summary": "Obtiene todas las categorías con sus acompañamientos",
+        "operationId": "GetCategoriesWithAccompaniments",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryWithAccompanimentsDTO"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accompaniments/{categoryItemCode}": {
+      "get": {
+        "tags": ["Accompaniments"],
+        "summary": "Obtiene los acompañamientos de una categoría específica",
+        "operationId": "GetCategoryAccompaniments",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryWithAccompanimentsDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Accompaniments"],
+        "summary": "Crea múltiples acompañamientos para una categoría",
+        "operationId": "CreateAccompaniments",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CategoryAccompanimentForCreationDTO"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryAccompanimentDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Accompaniments"],
+        "summary": "Actualiza múltiples acompañamientos de una categoría",
+        "operationId": "UpdateAccompaniments",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CategoryAccompanimentUpdateBatchDTO"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryAccompanimentDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Accompaniments"],
+        "summary": "Elimina todos los acompañamientos de una categoría",
+        "operationId": "DeleteAllCategoryAccompaniments",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/accompaniments/{categoryItemCode}/{lineNumber}": {
+      "get": {
+        "tags": ["Accompaniments"],
+        "summary": "Obtiene un acompañamiento específico de una categoría",
+        "operationId": "GetAccompaniment",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryAccompanimentDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Accompaniments"],
+        "summary": "Actualiza un acompañamiento existente",
+        "operationId": "UpdateSingleAccompaniment",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryAccompanimentForUpdateDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryAccompanimentDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Accompaniments"],
+        "summary": "Elimina un acompañamiento",
+        "operationId": "DeleteAccompaniment",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/accompaniments/{categoryItemCode}/single": {
+      "post": {
+        "tags": ["Accompaniments"],
+        "summary": "Crea un solo acompañamiento para una categoría",
+        "operationId": "CreateSingleAccompaniment",
+        "parameters": [
+          {
+            "name": "categoryItemCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryAccompanimentForCreationDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryAccompanimentDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/accompaniments/available-products": {
+      "get": {
+        "tags": ["Accompaniments"],
+        "summary": "Obtiene productos disponibles para usar como acompañamientos",
+        "operationId": "GetAvailableProducts",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductAvailableDTO"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CategoryWithAccompanimentsDTO": {
+        "type": "object",
+        "properties": {
+          "categoryItemCode": {
+            "type": "string",
+            "nullable": false
+          },
+          "categoryItemName": {
+            "type": "string",
+            "nullable": false
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "accompaniments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryAccompanimentDTO"
+            },
+            "nullable": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "CategoryAccompanimentDTO": {
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accompanimentItemCode": {
+            "type": "string",
+            "nullable": false
+          },
+          "accompanimentItemName": {
+            "type": "string",
+            "nullable": false
+          },
+          "accompanimentImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "accompanimentPrice": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "discount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          },
+          "enlargementItemCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlargementDiscount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CategoryAccompanimentForCreationDTO": {
+        "type": "object",
+        "properties": {
+          "accompanimentItemCode": {
+            "type": "string",
+            "nullable": false
+          },
+          "discount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          },
+          "enlargementItemCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlargementDiscount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "required": ["accompanimentItemCode"]
+      },
+      "CategoryAccompanimentForUpdateDTO": {
+        "type": "object",
+        "properties": {
+          "discount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          },
+          "enlargementItemCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlargementDiscount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CategoryAccompanimentUpdateBatchDTO": {
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updateData": {
+            "$ref": "#/components/schemas/CategoryAccompanimentForUpdateDTO"
+          }
+        },
+        "additionalProperties": false,
+        "required": ["lineNumber", "updateData"]
+      },
+      "ProductAvailableDTO": {
+        "type": "object",
+        "properties": {
+          "itemCode": {
+            "type": "string",
+            "nullable": false
+          },
+          "itemName": {
+            "type": "string",
+            "nullable": false
+          },
+          "price": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

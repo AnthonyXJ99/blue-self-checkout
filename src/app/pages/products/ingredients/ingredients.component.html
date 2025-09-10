@@ -1,0 +1,604 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nueva lista de ingredientes" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedIngredients()" [disabled]="!selectedIngredients() || !selectedIngredients().length" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" class="mr-2" />
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="ingredients()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['itemCode', 'itemName', 'dataSource']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedIngredients"
+    [rowHover]="true"
+    dataKey="itemCode"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} ingredientes"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Lista de Ingredientes</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar ingredientes..." />
+                </p-iconfield>
+            </div>
+            
+            <!-- Filtros avanzados -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Estado</label>
+                    <p-select 
+                        [options]="getEnabledFilterOptions()" 
+                        [(ngModel)]="selectedEnabledFilter"
+                        (onChange)="onEnabledFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todos"
+                        variant="filled"
+                        appendTo="body"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Fuente de Datos</label>
+                    <p-select 
+                        [options]="getDataSourceFilterOptions()" 
+                        [(ngModel)]="selectedDataSourceFilter"
+                        (onChange)="onDataSourceFilter()"
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Todas"
+                        variant="filled"
+                        appendTo="body"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Cantidad Mín.</label>
+                    <p-inputnumber 
+                        [(ngModel)]="minQuantity" 
+                        [min]="0"
+                        [showButtons]="true"
+                        (onInput)="onQuantityRangeFilter()"
+                        placeholder="0"
+                        fluid />
+                </div>
+                <div class="flex items-end">
+                    <p-button 
+                        label="Aplicar" 
+                        icon="pi pi-filter" 
+                        size="small"
+                        (onClick)="onQuantityRangeFilter()"
+                        fluid />
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="itemCode" style="min-width: 12rem">
+                Código
+                <p-sortIcon field="itemCode" />
+            </th>
+            <th pSortableColumn="itemName" style="min-width: 20rem">
+                Nombre
+                <p-sortIcon field="itemName" />
+            </th>
+            <th pSortableColumn="quantity" style="min-width: 10rem">
+                Cantidad
+                <p-sortIcon field="quantity" />
+            </th>
+            <th style="min-width: 12rem">Fuente de Datos</th>
+            <th style="min-width: 10rem">Ingredientes</th>
+            <th style="min-width: 10rem">Estado</th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    
+    <ng-template pTemplate="body" let-ingredient>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="ingredient" />
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ ingredient.itemCode }}</span>
+                    <small class="text-muted-color">ID: {{ ingredient.itemCode }}</small>
+                </div>
+            </td>
+            <td style="min-width: 20rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ ingredient.itemName }}</span>
+                    <small class="text-muted-color" *ngIf="ingredient.itemName">
+                        {{ ingredient.itemName.length > 50 ? (ingredient.itemName | slice:0:50) + '...' : ingredient.itemName }}
+                    </small>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-lg">{{ formatQuantity(ingredient.quantity) }}</span>
+                    <small class="text-muted-color">unidades</small>
+                </div>
+            </td>
+            <td style="min-width: 12rem">
+                <p-tag [value]="getDataSourceLabel(ingredient.dataSource)" 
+                       [severity]="getDataSourceSeverity(ingredient.dataSource)" />
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex items-center gap-2">
+                    <p-tag [value]="ingredient.items1.length.toString()" 
+                           severity="info" 
+                           [icon]="ingredient.items1.length > 0 ? 'pi pi-check' : 'pi pi-times'" />
+                    <span class="text-sm text-muted-color">Ingredientes</span>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex flex-col gap-1">
+                    <p-tag [value]="getEnabledLabel(ingredient.enabled)" 
+                           [severity]="getEnabledSeverity(ingredient.enabled)" />
+                </div>
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button 
+                        icon="pi pi-eye" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        severity="info"
+                        size="small"
+                        (click)="viewIngredient(ingredient)" 
+                        pTooltip="Ver detalles" />
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="editIngredient(ingredient)" 
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        size="small"
+                        (click)="deleteIngredient(ingredient)" 
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+
+    <!-- Template para estado vacío -->
+    <ng-template #empty>
+        <div class="text-center py-12">
+            <div class="mb-4">
+                <i class="pi pi-box text-6xl text-muted-color"></i>
+            </div>
+            <h5 class="mb-4">No hay ingredientes registrados</h5>
+            <div class="text-muted-color mb-6">
+                <p class="mb-2">Para crear ingredientes necesitas:</p>
+                <div class="flex flex-col gap-2 text-sm">
+                    <div class="flex items-center justify-center gap-2">
+                        <i class="pi pi-check-circle text-success" *ngIf="sellableProducts().length > 0; else sellableWarning"></i>
+                        <ng-template #sellableWarning><i class="pi pi-exclamation-triangle text-warning"></i></ng-template>
+                        <span>Productos vendibles ({{ sellableProducts().length }} disponibles)</span>
+                    </div>
+                    <div class="flex items-center justify-center gap-2">
+                        <i class="pi pi-check-circle text-success" *ngIf="nonSellableProducts().length > 0; else nonSellableWarning"></i>
+                        <ng-template #nonSellableWarning><i class="pi pi-exclamation-triangle text-warning"></i></ng-template>
+                        <span>Productos no vendibles ({{ nonSellableProducts().length }} disponibles)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 justify-center">
+                <p-button 
+                    label="Crear Primer Ingrediente" 
+                    icon="pi pi-plus" 
+                    (onClick)="openNew()"
+                    [disabled]="sellableProducts().length === 0 || nonSellableProducts().length === 0" />
+                <p-button 
+                    label="Ir a Productos" 
+                    icon="pi pi-external-link" 
+                    severity="secondary" 
+                    outlined 
+                    routerLink="/products"
+                    *ngIf="sellableProducts().length === 0 || nonSellableProducts().length === 0" />
+            </div>
+        </div>
+    </ng-template>
+</p-table>
+
+<!-- Diálogo de selección de producto principal -->
+<p-dialog [(visible)]="productSelectionDialog" [style]="{ width: '80vw', maxWidth: '900px' }" header="Seleccionar Producto" [modal]="true" (onHide)="productSelectionDialog = false">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <p class="text-muted-color">Selecciona un producto vendible para crear un nuevo ingrediente:</p>
+            
+            <!-- Buscador de productos -->
+            <div class="flex gap-2">
+                <p-iconfield class="flex-1">
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input 
+                        pInputText 
+                        type="text" 
+                        [(ngModel)]="productSearchTerm"
+                        placeholder="Buscar productos por nombre o código..." 
+                        class="w-full" />
+                </p-iconfield>
+                <p-button 
+                    icon="pi pi-times" 
+                    severity="secondary" 
+                    outlined 
+                    (onClick)="productSearchTerm.set('')"
+                    [disabled]="!productSearchTerm()"
+                    pTooltip="Limpiar búsqueda" />
+            </div>
+            
+            <!-- Lista de productos vendibles -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                <div *ngFor="let product of filteredSellableProducts()" 
+                     class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 cursor-pointer transition-colors"
+                     (click)="selectMainProduct(product)">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                            <img *ngIf="product.imageUrl" [src]="product.imageUrl" [alt]="product.itemName" class="w-10 h-10 object-cover rounded" />
+                            <i *ngIf="!product.imageUrl" class="pi pi-box text-muted-color"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h6 class="font-semibold mb-1">{{ product.itemName }}</h6>
+                            <small class="text-muted-color">{{ product.itemCode }}</small>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-sm font-medium">{{ productsService.formatPrice(product.price) }}</span>
+                                <p-tag value="Vendible" severity="success" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mensaje cuando no hay productos -->
+                <div *ngIf="filteredSellableProducts().length === 0" class="col-span-full text-center text-muted-color py-8">
+                    <i class="pi pi-box text-6xl mb-4 block"></i>
+                    <p *ngIf="!productSearchTerm()">No hay productos vendibles disponibles</p>
+                    <p *ngIf="productSearchTerm()">No se encontraron productos que coincidan con "{{ productSearchTerm() }}"</p>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="ingredientDialog" [style]="{ width: '95vw', maxWidth: '1400px', height: '90vh' }" [header]="ingredient() ? '📦 Producto: ' + ingredient()!.itemName : 'Crear Producto'" [modal]="true" (onHide)="hideDialog()" [maximizable]="true">
+    <ng-template #content>
+        <div *ngIf="ingredient()" class="h-full">
+            <p-tabview class="h-full">
+                <!-- Pestaña Información del Producto -->
+                <p-tabpanel header="📦 Información del Producto">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Columna Izquierda -->
+                        <div class="flex flex-col gap-4">
+                            <!-- Información del producto base -->
+                            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                                <h6 class="font-semibold mb-2">Producto Base Seleccionado</h6>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                                        <i class="pi pi-box text-muted-color"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold">{{ ingredient()!.itemName }}</p>
+                                        <small class="text-muted-color">Código: {{ ingredient()!.itemCode }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Códigos (solo lectura) -->
+                            <div>
+                                <label for="itemCode" class="block font-bold mb-3">Código del Producto</label>
+                                <input type="text" pInputText id="itemCode" [value]="ingredient()!.itemCode" readonly fluid />
+                                <small class="text-muted-color">Basado en el producto seleccionado</small>
+                            </div>
+                            
+                            <!-- Nombre (solo lectura) -->
+                            <div>
+                                <label for="itemName" class="block font-bold mb-3">Nombre del Producto</label>
+                                <input type="text" pInputText id="itemName" [value]="ingredient()!.itemName" readonly fluid />
+                                <small class="text-muted-color">Basado en el producto seleccionado</small>
+                            </div>
+                            
+                            <!-- Cantidad -->
+                            <div>
+                                <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
+                                <p-inputnumber id="quantity" [(ngModel)]="ingredient()!.quantity" [min]="0" [showButtons]="true" required fluid />
+                                <small class="text-red-500" *ngIf="submitted() && !ingredient()!.quantity">La cantidad es requerida.</small>
+                                <small class="text-muted-color">Cantidad base del producto</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Columna Derecha -->
+                        <div class="flex flex-col gap-4">
+                            <!-- Estado -->
+                            <div>
+                                <label for="enabled" class="block font-bold mb-3">Estado *</label>
+                                <p-select 
+                                    id="enabled"
+                                    [options]="getEnabledOptions()" 
+                                    [(ngModel)]="ingredient()!.enabled"
+                                    optionLabel="label" 
+                                    optionValue="value"
+                                    variant="filled"
+                                    required
+                                    fluid>
+                                </p-select>
+                                <small class="text-red-500" *ngIf="submitted() && !ingredient()!.enabled">El estado es requerido.</small>
+                            </div>
+                            
+                            <!-- Fuente de Datos -->
+                            <div>
+                                <label for="dataSource" class="block font-bold mb-3">Fuente de Datos *</label>
+                                <input 
+                                    type="text" 
+                                    pInputText 
+                                    id="dataSource" 
+                                    [(ngModel)]="ingredient()!.dataSource"
+                                    (input)="onDataSourceChange($any($event.target).value)"
+                                    maxlength="1"
+                                    placeholder="N, D, etc."
+                                    required 
+                                    fluid 
+                                    style="text-transform: uppercase;" />
+                                <small class="text-red-500" *ngIf="submitted() && !ingredient()!.dataSource">La fuente de datos es requerida.</small>
+                                <small class="text-muted-color">Un solo carácter (N, D, etc.) - Se convertirá a mayúscula automáticamente</small>
+                            </div>
+
+                            <!-- Información del producto -->
+                            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                                <h6 class="font-semibold mb-2">Resumen del Producto</h6>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div class="flex justify-between">
+                                        <span>Estado:</span>
+                                        <p-tag [value]="getEnabledLabel(ingredient()!.enabled)" [severity]="getEnabledSeverity(ingredient()!.enabled)" />
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Fuente:</span>
+                                        <p-tag [value]="getDataSourceLabel(ingredient()!.dataSource)" [severity]="getDataSourceSeverity(ingredient()!.dataSource)" />
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Ingredientes:</span>
+                                        <span class="font-semibold">{{ components().length }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Cantidad total:</span>
+                                        <span class="font-semibold">{{ getTotalComponentsQuantity() }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </p-tabpanel>
+                
+                <!-- Pestaña Ingredientes del Ingrediente -->
+                <p-tabpanel header="🥘 Lista de ingredientes ({{ getRecipeStats().selectedIngredients }}/{{ getRecipeStats().totalSlots }})">
+                    <div class="flex flex-col gap-4">
+                        <!-- Header con estadísticas -->
+                        <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
+                            <div class="flex justify-between items-center mb-3">
+                                <h6 class="font-semibold">📋 Ingredientes para: {{ ingredient()!.itemName }}</h6>
+                                <p-button label="➕ Agregar Ingrediente" icon="pi pi-plus" severity="secondary" (onClick)="addIngredient()" />
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div class="text-center">
+                                    <div class="font-semibold text-lg">{{ getRecipeStats().selectedIngredients }}</div>
+                                    <div class="text-muted-color">Ingredientes</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-semibold text-lg">{{ getRecipeStats().totalQuantity }}</div>
+                                    <div class="text-muted-color">Cantidad Total</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-semibold text-lg">1</div>
+                                    <div class="text-muted-color">Producto Final</div>
+                                </div>
+                                <div class="text-center">
+                                    <p-tag [value]="getRecipeStats().isComplete ? 'Completa' : 'Incompleta'" 
+                                           [severity]="getRecipeStats().isComplete ? 'success' : 'warning'" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Buscador de ingredientes -->
+                        <div *ngIf="components().length > 0" class="bg-surface-50 dark:bg-surface-800 p-3 rounded">
+                            <div class="flex gap-2">
+                                <p-iconfield class="flex-1">
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input 
+                                        pInputText 
+                                        type="text" 
+                                        [(ngModel)]="ingredientSearchTerm"
+                                        placeholder="Buscar ingredientes disponibles..." 
+                                        class="w-full" />
+                                </p-iconfield>
+                                <p-button 
+                                    icon="pi pi-times" 
+                                    severity="secondary" 
+                                    outlined 
+                                    size="small"
+                                    (onClick)="ingredientSearchTerm.set('')"
+                                    [disabled]="!ingredientSearchTerm()"
+                                    pTooltip="Limpiar búsqueda de ingredientes" />
+                            </div>
+                            <small class="text-muted-color mt-2 block">
+                                <i class="pi pi-info-circle mr-1"></i>
+                                La búsqueda filtra los productos disponibles en los dropdowns de ingredientes
+                            </small>
+                        </div>
+
+                        <!-- Lista de Ingredientes -->
+                        <div class="space-y-3" *ngIf="components().length > 0">
+                            <div *ngFor="let ingredient of components(); let i = index" 
+                                 class="p-4 border-l-4 border-l-primary-500 bg-surface-0 dark:bg-surface-900 rounded-r shadow-sm">
+                                
+                                <!-- Header del ingrediente -->
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                                            {{ i + 1 }}
+                                        </span>
+                                        <span class="font-medium">Ingrediente {{ i + 1 }}</span>
+                                    </div>
+                                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" 
+                                              size="small" (click)="removeIngredient(i)" pTooltip="Eliminar ingrediente" />
+                                </div>
+                                
+                                <!-- Selección de producto -->
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div class="md:col-span-2">
+                                        <label class="block font-medium mb-2">🥬 Seleccionar Ingrediente</label>
+                                        <p-autocomplete 
+                                            [ngModel]="ingredient.itemCode"
+                                            (completeMethod)="filterIngredients($event, i)"
+                                            (onSelect)="onIngredientProductSelect(i, $event)"
+                                            (ngModelChange)="onIngredientProductSelect(i, $event)"
+                                            [suggestions]="filteredIngredientOptions"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            placeholder="Buscar ingrediente..."
+                                            [dropdown]="true"
+                                            appendTo="body"
+                                            [disabled]="getIngredientOptionsForSlot(i).length === 0"
+                                            [style]="{'width':'100%'}">
+                                        </p-autocomplete>
+                                        <small class="text-muted-color">
+                                            <i class="pi pi-info-circle mr-1"></i>
+                                            Solo productos no vendibles. Cada ingrediente puede usarse una vez.
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">🔢 Cantidad</label>
+                                        <p-inputnumber 
+                                            [ngModel]="ingredient.quantity" 
+                                            (onInput)="updateIngredientQuantity(i, $event.value || 0)"
+                                            [min]="0" 
+                                            [showButtons]="true" 
+                                            [disabled]="!ingredient.itemCode"
+                                            suffix=" unidades"
+                                            fluid />
+                                    </div>
+                                    <div>
+                                        <label class="block font-medium mb-2">🎛️ Personalizable</label>
+                                        <p-select 
+                                            [options]="getCustomizableOptions()"
+                                            [ngModel]="ingredient.isCustomizable || 'N'"
+                                            (onChange)="updateIngredientCustomizable(i, $event.value)"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            [disabled]="!ingredient.itemCode"
+                                            variant="filled"
+                                            appendTo="body"
+                                            fluid>
+                                        </p-select>
+                                        <small class="text-muted-color">¿El cliente puede personalizar este ingrediente?</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Información del ingrediente seleccionado -->
+                                <div *ngIf="ingredient.itemCode" class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                                            <img *ngIf="getProductInfo(ingredient.itemCode)?.imageUrl" 
+                                                 [src]="getProductInfo(ingredient.itemCode)!.imageUrl" 
+                                                 [alt]="ingredient.itemName" 
+                                                 class="w-10 h-10 object-cover rounded" />
+                                            <i *ngIf="!getProductInfo(ingredient.itemCode)?.imageUrl" class="pi pi-box text-muted-color text-xl"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="font-semibold">{{ ingredient.itemName }}</p>
+                                            <small class="text-muted-color">Código: {{ ingredient.itemCode }}</small>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <p-tag value="Ingrediente" severity="info" />
+                                                <span class="text-sm font-medium">{{ ingredient.quantity }} unidades</span>
+                                                <p-tag 
+                                                    [value]="getCustomizableLabel(ingredient.isCustomizable || 'N')"
+                                                    [severity]="getCustomizableSeverity(ingredient.isCustomizable || 'N')" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Mensaje si no hay productos disponibles -->
+                                <div *ngIf="getIngredientOptionsForSlot(i).length === 0 && !ingredient.itemCode" 
+                                     class="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
+                                    <div class="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                                        <i class="pi pi-exclamation-triangle"></i>
+                                        <span class="text-sm">No hay más ingredientes disponibles. Todos los productos no vendibles ya están en uso.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Estado vacío -->
+                        <div *ngIf="components().length === 0" class="text-center text-muted-color py-12">
+                            <i class="pi pi-bookmark text-6xl mb-4 block"></i>
+                            <h6 class="text-xl mb-2">📦 Producto Sin Ingredientes</h6>
+                           
+                        </div>
+                    </div>
+                </p-tabpanel>
+            </p-tabview>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-between items-center w-full">
+            <!-- Resumen de la receta -->
+            <div class="flex items-center gap-4 text-sm">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-bookmark text-primary"></i>
+                    <span class="font-medium">{{ ingredient()!.itemName }}</span>
+                </div>
+                
+                <div class="flex items-center gap-2 text-muted-color">
+                    <i class="pi pi-shopping-bag"></i>
+                    <span>{{ getRecipeStats().selectedIngredients }} ingrediente(s)</span>
+                </div>
+                
+                <div class="flex items-center gap-2 text-muted-color">
+                    <i class="pi pi-calculator"></i>
+                    <span>{{ getRecipeStats().totalQuantity }} unidades totales</span>
+                </div>
+                
+                <!-- Estado de completitud -->
+                <p-tag [value]="getRecipeStats().isComplete ? 'Lista para guardar' : 'Producto incompleto'" 
+                       [severity]="getRecipeStats().isComplete ? 'success' : 'warning'" 
+                       [icon]="getRecipeStats().isComplete ? 'pi pi-check' : 'pi pi-exclamation-triangle'" />
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="flex gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
+                <p-button 
+                    label="💾 Guardar Producto" 
+                    icon="pi pi-check" 
+                    [loading]="loading()" 
+                    [disabled]="!getRecipeStats().isComplete"
+                    (click)="saveIngredient()" />
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary"/>
+<p-toast />

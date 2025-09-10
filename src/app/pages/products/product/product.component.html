@@ -338,44 +338,41 @@
                             <div class="grid grid-cols-3 gap-4">
                                 <div>
                                     <label for="sellItem" class="block font-bold mb-3">Se Vende *</label>
-                                    <p-select 
+                                    <p-checkbox 
                                         id="sellItem"
-                                        [options]="statusOptions" 
-                                        [(ngModel)]="product()!.sellItem"
-                                        optionLabel="label" 
-                                        optionValue="value"
-                                        variant="filled"
-                                        required
-                                        fluid>
-                                    </p-select>
+                                        [(ngModel)]="product()!.sellItem" 
+                                        [binary]="true"
+                                        [trueValue]="'Y'"
+                                        [falseValue]="'N'"
+                                        label="Sí"
+                                        required>
+                                    </p-checkbox>
                                     <small class="text-red-500" *ngIf="submitted() && !product()!.sellItem">Requerido.</small>
                                 </div>
                                 <div>
                                     <label for="available" class="block font-bold mb-3">Disponible *</label>
-                                    <p-select 
+                                    <p-checkbox 
                                         id="available"
-                                        [options]="statusOptions" 
-                                        [(ngModel)]="product()!.available"
-                                        optionLabel="label" 
-                                        optionValue="value"
-                                        variant="filled"
-                                        required
-                                        fluid>
-                                    </p-select>
+                                        [(ngModel)]="product()!.available" 
+                                        [binary]="true"
+                                        [trueValue]="'Y'"
+                                        [falseValue]="'N'"
+                                        label="Sí"
+                                        required>
+                                    </p-checkbox>
                                     <small class="text-red-500" *ngIf="submitted() && !product()!.available">Requerido.</small>
                                 </div>
                                 <div>
-                                    <label for="enabled" class="block font-bold mb-3">Habilitado *</label>
-                                    <p-select 
+                                    <label for="enabled" class="block font-bold mb-3">Activo *</label>
+                                    <p-checkbox 
                                         id="enabled"
-                                        [options]="statusOptions" 
-                                        [(ngModel)]="product()!.enabled"
-                                        optionLabel="label" 
-                                        optionValue="value"
-                                        variant="filled"
-                                        required
-                                        fluid>
-                                    </p-select>
+                                        [(ngModel)]="product()!.enabled" 
+                                        [binary]="true"
+                                        [trueValue]="'Y'"
+                                        [falseValue]="'N'"
+                                        label="Sí"
+                                        required>
+                                    </p-checkbox>
                                     <small class="text-red-500" *ngIf="submitted() && !product()!.enabled">Requerido.</small>
                                 </div>
                             </div>
@@ -451,48 +448,52 @@
                     </div>
                 </p-tabpanel>
                 
-                <!-- Pestaña Materiales -->
-                <p-tabpanel header="Materiales ({{ materials().length }})">
+                <!-- Pestaña Ingredientes -->
+                <p-tabpanel header="Ingredientes ({{ materials().length }})">
                     <div class="flex flex-col gap-4">
                         <div class="flex justify-between items-center">
-                            <h6 class="font-semibold">Materiales del Producto</h6>
-                            <p-button label="Agregar Material" icon="pi pi-plus" severity="secondary" (onClick)="addMaterial()" />
+                            <h6 class="font-semibold">Ingredientes del Producto</h6>
                         </div>
                         
-                        <div class="space-y-4" *ngIf="materials().length > 0">
-                            <div *ngFor="let material of materials(); let i = index" class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <label class="block font-medium mb-2">Código *</label>
-                                        <input type="text" pInputText [(ngModel)]="material.itemCode" placeholder="MAT001" fluid />
+                       
+                        
+                        <div class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg" *ngIf="materials().length > 0">
+                            <div class="grid grid-cols-1 gap-3">
+                                <div *ngFor="let material of materials(); let i = index" class="flex items-center p-3 border-b border-surface-200 dark:border-surface-700 last:border-b-0">
+                                    <div class="w-16 h-16 flex-shrink-0 mr-4 overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700">
+                                        <img *ngIf="material.imageUrl" [src]="material.imageUrl" alt="Imagen del material" class="w-full h-full object-cover" />
+                                        <div *ngIf="!material.imageUrl" class="w-full h-full flex items-center justify-center bg-surface-50 dark:bg-surface-800">
+                                            <i class="pi pi-image text-surface-400"></i>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="block font-medium mb-2">Nombre *</label>
-                                        <input type="text" pInputText [(ngModel)]="material.itemName" placeholder="Nombre del material" fluid />
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium mb-2">Cantidad *</label>
-                                        <p-inputnumber [(ngModel)]="material.quantity" [min]="1" [showButtons]="true" fluid />
-                                    </div>
-                                    <div class="flex items-end">
-                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="removeMaterial(i)" pTooltip="Eliminar material" />
-                                    </div>
-                                </div>
-                                <div class="mt-3 flex items-center gap-4">
-                                    <p-checkbox [(ngModel)]="material.isPrimary" [binary]="true" label="Material Principal" />
                                     <div class="flex-1">
-                                        <label class="block font-medium mb-2">URL de Imagen</label>
-                                        <input type="text" pInputText [(ngModel)]="material.imageUrl" placeholder="https://ejemplo.com/imagen.jpg" fluid />
+                                        <div class="flex justify-between">
+                                            <div class="text-base font-medium">{{ material.itemName || 'N/A' }}</div>
+                                            <div class="text-sm text-muted-color">{{ material.itemCode || 'N/A' }}</div>
+                                        </div>
+                                        <div class="flex justify-between mt-1">
+                                            <div class="text-sm">Cantidad: <span class="font-medium">{{ material.quantity || 0 }}</span></div>
+                                            <p-tag [severity]="material.isCustomizable=='Y' ? 'success' : 'info'" [value]="material.isCustomizable=='Y' ? 'Personalizable' : 'No Personalizable'" [rounded]="true" [icon]="material.isCustomizable ? 'pi pi-star' : 'pi pi-circle'" styleClass="text-xs"></p-tag>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div *ngIf="materials().length === 0" class="text-center text-muted-color py-12">
-                            <i class="pi pi-box text-6xl mb-4 block"></i>
-                            <h6 class="text-xl mb-2">No hay materiales agregados</h6>
-                            <p class="mb-4">Los materiales son componentes que forman parte del producto</p>
-                            <p-button label="Agregar Primer Material" icon="pi pi-plus" (onClick)="addMaterial()" />
+                        <div *ngIf="materials().length === 0" class="text-center text-muted-color py-8 px-4 border border-dashed border-surface-300 dark:border-surface-600 rounded-lg">
+                            <i class="pi pi-box text-4xl mb-3 block"></i>
+                            <h6 class="text-lg mb-2">No hay Ingredientes agregados</h6>
+                            <p class="mb-2 text-sm">Los Ingredientes son componentes que forman parte del producto</p>
+                            <div class="flex gap-2 justify-center mt-3">
+                                <p-button 
+                                    label="Ver Ingredientes"
+                                    icon="pi pi-external-link" 
+                                    severity="secondary" 
+                                    size="small"
+                                    outlined 
+                                    (onClick)="navigateToIngredients()"
+                                    *ngIf="hasAvailableIngredients()" />
+                            </div>
                         </div>
                     </div>
                 </p-tabpanel>
@@ -502,48 +503,38 @@
                     <div class="flex flex-col gap-4">
                         <div class="flex justify-between items-center">
                             <h6 class="font-semibold">Acompañamientos del Producto</h6>
-                            <p-button label="Agregar Acompañamiento" icon="pi pi-plus" severity="secondary" (onClick)="addAccompaniment()" />
                         </div>
                         
-                        <div class="space-y-4" *ngIf="accompaniments().length > 0">
-                            <div *ngFor="let accompaniment of accompaniments(); let i = index" class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
-                                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                                    <div>
-                                        <label class="block font-medium mb-2">Código *</label>
-                                        <input type="text" pInputText [(ngModel)]="accompaniment.itemCode" placeholder="ACC001" fluid />
+                        <div class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg" *ngIf="accompaniments().length > 0">
+                            <div class="grid grid-cols-1 gap-3">
+                                <div *ngFor="let accompaniment of accompaniments(); let i = index" class="flex items-center p-3 border-b border-surface-200 dark:border-surface-700 last:border-b-0">
+                                    <div class="w-16 h-16 flex-shrink-0 mr-4 overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700">
+                                        <img *ngIf="accompaniment.imageUrl" [src]="accompaniment.imageUrl" alt="Imagen del acompañamiento" class="w-full h-full object-cover" />
+                                        <div *ngIf="!accompaniment.imageUrl" class="w-full h-full flex items-center justify-center bg-surface-50 dark:bg-surface-800">
+                                            <i class="pi pi-image text-surface-400"></i>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="block font-medium mb-2">Nombre *</label>
-                                        <input type="text" pInputText [(ngModel)]="accompaniment.itemName" placeholder="Nombre del acompañamiento" fluid />
+                                    <div class="flex-1">
+                                        <div class="flex justify-between">
+                                            <div class="text-base font-medium">{{ accompaniment.itemName || 'N/A' }}</div>
+                                            <div class="text-sm text-muted-color">{{ accompaniment.itemCode || 'N/A' }}</div>
+                                        </div>
+                                        <div class="flex justify-between mt-1">
+                                            <div class="text-sm">
+                                                <span class="font-medium">{{ accompaniment.price | currency:'USD' }}</span>
+                                                <span *ngIf="accompaniment.priceOld > 0" class="text-xs line-through ml-2 text-muted-color">{{ accompaniment.priceOld | currency:'USD' }}</span>
+                                            </div>
+                                            <p-tag *ngIf="accompaniment.priceOld > 0 && accompaniment.price > 0" [value]="((accompaniment.priceOld - accompaniment.price) / accompaniment.priceOld * 100).toFixed(0) + '%'" severity="success" [rounded]="true" icon="pi pi-tag" styleClass="text-xs"></p-tag>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="block font-medium mb-2">Precio Anterior</label>
-                                        <p-inputnumber [(ngModel)]="accompaniment.priceOld" mode="currency" currency="USD" [min]="0" fluid />
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium mb-2">Precio Actual *</label>
-                                        <p-inputnumber [(ngModel)]="accompaniment.price" mode="currency" currency="USD" [min]="0" fluid />
-                                    </div>
-                                    <div class="flex items-end">
-                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="removeAccompaniment(i)" pTooltip="Eliminar acompañamiento" />
-                                    </div>
-                                </div>
-                                <div class="mt-3">
-                                    <label class="block font-medium mb-2">URL de Imagen</label>
-                                    <input type="text" pInputText [(ngModel)]="accompaniment.imageUrl" placeholder="https://ejemplo.com/imagen.jpg" fluid />
-                                </div>
-                                <div class="mt-2 flex items-center gap-4" *ngIf="accompaniment.priceOld > 0 && accompaniment.price > 0">
-                                    <span class="text-sm text-muted-color">Descuento: </span>
-                                    <p-tag [value]="((accompaniment.priceOld - accompaniment.price) / accompaniment.priceOld * 100).toFixed(0) + '%'" severity="success" />
                                 </div>
                             </div>
                         </div>
                         
-                        <div *ngIf="accompaniments().length === 0" class="text-center text-muted-color py-12">
-                            <i class="pi pi-list text-6xl mb-4 block"></i>
-                            <h6 class="text-xl mb-2">No hay acompañamientos agregados</h6>
-                            <p class="mb-4">Los acompañamientos son productos adicionales que se pueden ofrecer</p>
-                            <p-button label="Agregar Primer Acompañamiento" icon="pi pi-plus" (onClick)="addAccompaniment()" />
+                        <div *ngIf="accompaniments().length === 0" class="text-center text-muted-color py-8 px-4 border border-dashed border-surface-300 dark:border-surface-600 rounded-lg">
+                            <i class="pi pi-list text-4xl mb-3 block"></i>
+                            <h6 class="text-lg mb-2">No hay acompañamientos agregados</h6>
+                            <p class="mb-2 text-sm">Los acompañamientos son productos adicionales que se pueden ofrecer</p>
                         </div>
                     </div>
                 </p-tabpanel>

@@ -79,6 +79,13 @@ import { ApiResponse } from "../../core/model/api-response.model";
     deleteProduct(itemCode: string): Observable<void> {
       return this.apiService.delete<void>(`${this.endpoint}/${itemCode}`);
     }
+
+      /**
+     * Obtiene productos que se venden o no
+     */
+    getProductsBySellItem(sellable: boolean): Observable<Product[]> {
+      return this.apiService.get<Product[]>(`${this.endpoint}/sellable/${sellable}`);
+    }
   
     // ===== MÉTODOS DE BÚSQUEDA Y FILTRADO =====
   
@@ -93,6 +100,9 @@ import { ApiResponse } from "../../core/model/api-response.model";
       };
       return this.getProducts(params);
     }
+
+  
+
   
     /**
      * Obtiene productos disponibles
@@ -367,9 +377,9 @@ import { ApiResponse } from "../../core/model/api-response.model";
     }
   
     /**
-     * Formatea el precio para mostrar
+     * Formatea el precio para mostrar en pesos chilenos
      */
-    formatPrice(price: number, currency: string = '$'): string {
+    formatPrice(price: number, currency: string = 'CLP$'): string {
       return `${currency}${price.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     }
   
