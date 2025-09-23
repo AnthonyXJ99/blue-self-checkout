@@ -40,6 +40,7 @@ export interface ProductMaterial {
     sellItem: string;               // Se vende (Y/N)
     available: string;              // Disponible (Y/N)
     enabled: string;                // Habilitado (Y/N)
+    isCombo?: string;               // Es combo (Y/N)
     groupItemCode?: string;         // Código del grupo
     categoryItemCode?: string;      // Código de la categoría
     waitingTime?: string;           // Tiempo de espera
@@ -88,6 +89,7 @@ export interface ProductMaterial {
     sellItem: string;               // Y/N
     available: string;              // Y/N
     enabled: string;                // Y/N
+    isCombo?: string;               // Y/N
     groupItemCode?: string;
     categoryItemCode?: string;
     waitingTime?: string;

@@ -39,10 +39,11 @@ export class AppMenu {
                 label: 'Productos',
                 items: [
                     { label: 'Grupo', icon: 'pi pi-fw pi-list', routerLink: ['/products/product-group'] },
-                    { label: 'Categorías', icon: 'pi pi-fw pi-list', routerLink: ['/products/category'] }, 
+                    { label: 'Categorías', icon: 'pi pi-fw pi-list', routerLink: ['/products/category'] },
                     { label: 'Productos', icon: 'pi pi-fw pi-list', routerLink: ['/products/product'] },
                     { label: 'Lista de Ingredientes', icon: 'pi pi-fw pi-sitemap', routerLink: ['/products/ingredients'] },
-                    { label: 'Acompañamientos', icon: 'pi pi-fw pi-plus-circle', routerLink: ['/products/accompaniments'] }
+                    { label: 'Acompañamientos', icon: 'pi pi-fw pi-plus-circle', routerLink: ['/products/accompaniments'] },
+                    { label: 'Combos', icon: 'pi pi-fw pi-th-large', routerLink: ['/products/combos'] }
                 ]
             },
             {

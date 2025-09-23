@@ -392,8 +392,8 @@ export class AccompanimentsComponent implements OnInit {
       enlargementDiscount: 0
     };
 
-    // Agregar el slot al array
-    this.accompanimentSlots.set([...this.accompanimentSlots(), newSlot]);
+    // Agregar el slot al inicio del array para que aparezca arriba
+    this.accompanimentSlots.set([newSlot, ...this.accompanimentSlots()]);
   }
 
   // Remover slot de acompañamiento

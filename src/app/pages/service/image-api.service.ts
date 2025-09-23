@@ -153,12 +153,12 @@ export class ImageApiService{
       };
     }
 
-    // Validar tamaño (máximo 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validar tamaño (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return {
         isValid: false,
-        error: 'El archivo es demasiado grande. Máximo 5MB permitido.'
+        error: 'El archivo es demasiado grande. Máximo 10MB permitido.'
       };
     }
 

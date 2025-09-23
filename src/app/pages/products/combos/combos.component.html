@@ -1,0 +1,467 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template pTemplate="start">
+        <p-button label="Nuevo Combo" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Recargar" icon="pi pi-refresh" outlined (onClick)="loadCombos()" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <div class="flex gap-2">
+            <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" />
+            <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+        </div>
+    </ng-template>
+</p-toolbar>
+
+<!-- Combos Table -->
+<div class="card" *ngIf="combos().length > 0">
+    <p-table [value]="combos()" dataKey="itemCode" styleClass="p-datatable-striped">
+        <ng-template pTemplate="header">
+            <tr>
+                <th style="width: 5rem"></th> <!-- Toggler -->
+                <th>Combo</th>
+                <th style="width: 12rem">Precio</th>
+                <th style="width: 20rem">Información</th>
+                <th style="width: 15rem">Acciones</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-combo>
+            <tr>
+                <td>
+                    <p-button
+                        (click)="toggleRow(combo.itemCode)"
+                        [text]="true"
+                        [rounded]="true"
+                        [icon]="isRowExpanded(combo.itemCode) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                        size="small">
+                    </p-button>
+                </td>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <img *ngIf="combo.imageUrl" [src]="combo.imageUrl" [alt]="combo.itemName" class="w-full h-full object-cover rounded-lg" />
+                            <i *ngIf="!combo.imageUrl" class="pi pi-th-large text-muted-color text-2xl"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-lg">{{ combo.itemName }}</div>
+                            <div class="text-muted-color text-sm">{{ combo.itemCode }}</div>
+                            <div class="text-muted-color text-xs" *ngIf="combo.description">{{ combo.description }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-lg text-primary">{{ formatPrice(combo.price) }}</span>
+                        <div *ngIf="combo.discount && combo.discount > 0" class="flex items-center gap-2">
+                            <span class="text-sm line-through text-muted-color">{{ formatPrice(combo.price) }}</span>
+                            <p-tag [value]="combo.discount + '%'" severity="success" />
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="flex flex-col gap-2">
+                        <p-chip [label]="combo.itemCode" styleClass="p-chip-sm" />
+                        <p-tag [value]="(combo.comboOptions?.length || 0) + ' opción(es)'" severity="info" />
+                        <div class="flex gap-1">
+                            <p-tag value="Combo" severity="warning" styleClass="text-xs" />
+                            <p-tag *ngIf="combo.available === 'Y'" value="Disponible" severity="success" styleClass="text-xs" />
+                            <p-tag *ngIf="combo.enabled === 'Y'" value="Activo" severity="info" styleClass="text-xs" />
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="flex gap-1">
+                        <p-button icon="pi pi-cog" [rounded]="true" [text]="true" size="small" (click)="selectCombo(combo)" pTooltip="Gestionar opciones" />
+                        <p-button icon="pi pi-eye" severity="info" [rounded]="true" [text]="true" size="small" pTooltip="Ver detalles" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" size="small" [disabled]="(combo.comboOptions?.length || 0) > 0" pTooltip="Eliminar combo" />
+                    </div>
+                </td>
+            </tr>
+            <!-- Expanded Content Row -->
+            <tr *ngIf="isRowExpanded(combo.itemCode)">
+                <td colspan="5">
+                    <div class="p-4">
+                        <div *ngIf="combo.comboOptions && combo.comboOptions.length > 0">
+                            <h6 class="font-semibold mb-3">Opciones del Combo ({{ combo.comboOptions.length }})</h6>
+
+                            <!-- Group options by groupItemCode -->
+                            <div *ngFor="let group of getGroupedOptions(combo.comboOptions)" class="mb-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <p-tag [value]="group.name" severity="secondary" />
+                                    <span class="text-sm text-muted-color">{{ group.options.length }} opción(es)</span>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    <div *ngFor="let option of group.options"
+                                         class="p-3 border border-surface-200 dark:border-surface-700 rounded-lg">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                                                <img *ngIf="option.imageUrl" [src]="option.imageUrl" [alt]="option.optionItemName" class="w-full h-full object-cover rounded" />
+                                                <i *ngIf="!option.imageUrl" class="pi pi-shopping-cart text-muted-color"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="font-semibold text-sm">{{ option.optionItemName }}</div>
+                                                <div class="text-xs text-muted-color">{{ option.optionItemCode }}</div>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="font-medium text-sm">{{ formatPrice(option.finalPrice) }}</span>
+                                                    <p-tag *ngIf="option.isDefault === 'Y'" value="Default" severity="success" styleClass="text-xs" />
+                                                    <p-tag [value]="getUpgradeLevelLabel(option.upgradeLevel)" [severity]="getUpgradeLevelSeverity(option.upgradeLevel)" styleClass="text-xs" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="!combo.comboOptions || combo.comboOptions.length === 0" class="text-center py-6 text-muted-color">
+                            <i class="pi pi-info-circle text-4xl mb-3 block text-orange-400"></i>
+                            <h6 class="text-lg mb-2">Sin opciones configuradas</h6>
+                            <p class="mb-4">Este combo no tiene opciones disponibles aún.</p>
+                            <p-button label="Configurar Opciones" icon="pi pi-cog" severity="secondary" size="small" (click)="selectCombo(combo)" />
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Empty State - No Combos -->
+<div *ngIf="combos().length === 0 && !loading()" class="text-center text-muted-color py-12">
+    <i class="pi pi-th-large text-6xl mb-4 block text-blue-400"></i>
+    <h4 class="text-2xl mb-4">¡Aún no hay combos registrados!</h4>
+    <p class="mb-4">No se han configurado combos para ningún producto.</p>
+    <p class="mb-6 text-sm">
+        Los combos aparecerán aquí una vez que configures productos como combos con sus opciones.
+    </p>
+    <div class="flex justify-center gap-3">
+        <p-button
+            label="Crear Primer Combo"
+            icon="pi pi-plus"
+            severity="secondary"
+            (onClick)="openNew()" />
+        <p-button
+            label="Recargar"
+            icon="pi pi-refresh"
+            [outlined]="true"
+            (onClick)="loadCombos()" />
+    </div>
+</div>
+
+<!-- Loading State -->
+<div *ngIf="loading()" class="text-center py-12">
+    <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+    <p class="text-muted-color mt-4">Cargando combos...</p>
+</div>
+
+<!-- Combo Selection Dialog -->
+<p-dialog [(visible)]="comboSelectionDialog" [style]="{ width: '80vw', maxWidth: '900px' }" header="Seleccionar Combo para Gestionar" [modal]="true" (onHide)="hideComboSelectionDialog()">
+    <div *ngIf="availableComboProducts().length > 0">
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Buscar combo:</label>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" [ngModel]="comboSearchTerm()" (ngModelChange)="comboSearchTerm.set($event)" placeholder="Buscar por código o nombre..." fluid />
+            </p-iconfield>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+            <div *ngFor="let combo of getFilteredComboProducts()"
+                 class="border border-surface-200 dark:border-surface-700 rounded-lg p-4 hover:bg-surface-50 dark:hover:bg-surface-800 cursor-pointer transition-colors"
+                 (click)="selectCombo(combo)">
+                <div class="flex items-start gap-3">
+                    <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                        <img *ngIf="combo.imageUrl" [src]="combo.imageUrl" [alt]="combo.itemName" class="w-full h-full object-cover rounded" />
+                        <i *ngIf="!combo.imageUrl" class="pi pi-th-large text-muted-color"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h6 class="font-semibold mb-1">{{ combo.itemName }}</h6>
+                        <p class="text-sm text-muted-color mb-2">{{ combo.itemCode }}</p>
+                        <p class="text-xs text-muted-color" *ngIf="combo.description">{{ combo.description }}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <p-tag value="Combo" severity="warning" styleClass="text-xs" />
+                            <span class="font-medium text-primary">{{ formatPrice(combo.price) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div *ngIf="availableComboProducts().length === 0" class="text-center py-8">
+        <i class="pi pi-th-large text-4xl text-muted-color mb-4 block"></i>
+        <h6 class="text-lg mb-2">No hay combos disponibles</h6>
+        <p class="text-muted-color">Primero debe marcar productos como combos (isCombo = Y)</p>
+    </div>
+</p-dialog>
+
+<!-- Combo Options Management Dialog -->
+<p-dialog [(visible)]="comboOptionsDialog" [style]="{ width: '90vw', maxWidth: '1200px' }" [header]="'Gestionar Opciones - ' + (selectedCombo()?.itemName || '')" [modal]="true" (onHide)="hideComboOptionsDialog()" [maximizable]="true">
+    <div *ngIf="selectedCombo()">
+
+        <!-- Combo Info Header -->
+        <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded-lg mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-surface-100 dark:bg-surface-700 rounded-lg flex items-center justify-center">
+                    <img *ngIf="selectedCombo()!.imageUrl" [src]="selectedCombo()!.imageUrl" [alt]="selectedCombo()!.itemName" class="w-full h-full object-cover rounded-lg" />
+                    <i *ngIf="!selectedCombo()!.imageUrl" class="pi pi-th-large text-muted-color text-2xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold mb-1">{{ selectedCombo()!.itemName }}</h4>
+                    <p class="text-muted-color text-sm mb-2">{{ selectedCombo()!.itemCode }}</p>
+                    <p class="text-xs text-muted-color" *ngIf="selectedCombo()!.description">{{ selectedCombo()!.description }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-muted-color">Precio Base</p>
+                    <p class="text-2xl font-bold text-primary">{{ formatPrice(selectedCombo()!.price) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header con estadísticas -->
+        <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h6 class="font-semibold">🍽️ Opciones para: {{ selectedCombo()!.itemName }}</h6>
+                <p-button label="➕ Agregar Opción" icon="pi pi-plus" severity="secondary" (onClick)="addComboOption()" />
+            </div>
+        </div>
+
+        <!-- New Combo Option Slots -->
+        <div class="space-y-3" *ngIf="comboOptionSlots().length > 0">
+            <h6 class="font-semibold mb-4 text-primary">➕ Nuevas Opciones</h6>
+            <div *ngFor="let slot of comboOptionSlots(); let i = index"
+                 class="p-4 border-l-4 border-l-primary-500 bg-surface-0 dark:bg-surface-900 rounded-r shadow-sm">
+
+                <!-- Header del slot -->
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                            {{ i + 1 }}
+                        </span>
+                        <span class="font-medium">Nueva Opción {{ i + 1 }}</span>
+                    </div>
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                              size="small" (click)="removeComboOptionSlot(i)" pTooltip="Eliminar opción" />
+                </div>
+
+                <!-- Campos del slot -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block font-medium mb-2">🏷️ Grupo</label>
+                        <p-select
+                            [(ngModel)]="slot.groupItemCode"
+                            [options]="getGroupOptions()"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Seleccionar grupo..."
+                            [filter]="true"
+                            filterPlaceholder="Buscar grupo..."
+                            appendTo="body"
+                            fluid>
+                        </p-select>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-2">🛒 Producto</label>
+                        <p-select
+                            [(ngModel)]="slot.optionItemCode"
+                            [options]="getProductOptionsForSlot(i)"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Seleccionar producto..."
+                            [filter]="true"
+                            filterPlaceholder="Buscar producto..."
+                            [disabled]="getProductOptionsForSlot(i).length === 0"
+                            appendTo="body"
+                            fluid>
+                        </p-select>
+                        <small class="text-muted-color">Solo productos vendibles disponibles</small>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-2">💰 Delta Precio</label>
+                        <p-inputnumber
+                            [(ngModel)]="slot.priceDelta"
+                            mode="currency"
+                            currency="USD"
+                            [showButtons]="true"
+                            [disabled]="!slot.optionItemCode"
+                            fluid />
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-2">📊 Nivel</label>
+                        <p-inputnumber
+                            [(ngModel)]="slot.upgradeLevel"
+                            [min]="0"
+                            [max]="3"
+                            [showButtons]="true"
+                            [disabled]="!slot.optionItemCode"
+                            fluid />
+                    </div>
+                    <div class="flex flex-col justify-end">
+                        <label class="block font-medium mb-2">✅ Por Defecto</label>
+                        <div class="flex items-center gap-2 h-10">
+                            <p-checkbox
+                                [(ngModel)]="slot.isDefault"
+                                [binary]="true"
+                                [trueValue]="'Y'"
+                                [falseValue]="'N'"
+                                [disabled]="!slot.optionItemCode"
+                                inputId="default-{{i}}" />
+                            <label [for]="'default-' + i" class="text-sm">Opción por defecto</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Etiqueta opcional -->
+                <div class="mt-4">
+                    <label class="block font-medium mb-2">🏷️ Etiqueta Personalizada (Opcional)</label>
+                    <input
+                        type="text"
+                        pInputText
+                        [(ngModel)]="slot.upgradeLabel"
+                        placeholder="Ej: Grande - Upgrade, 500ml, etc."
+                        [disabled]="!slot.optionItemCode"
+                        fluid />
+                </div>
+
+                <!-- Información del producto seleccionado -->
+                <div *ngIf="slot.optionItemCode" class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                            <img *ngIf="getProductByCode(slot.optionItemCode)?.imageUrl"
+                                 [src]="getProductByCode(slot.optionItemCode)!.imageUrl"
+                                 [alt]="getProductByCode(slot.optionItemCode)!.itemName"
+                                 class="w-10 h-10 object-cover rounded" />
+                            <i *ngIf="!getProductByCode(slot.optionItemCode)?.imageUrl" class="pi pi-shopping-cart text-muted-color text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold">{{ getProductByCode(slot.optionItemCode)?.itemName }}</p>
+                            <small class="text-muted-color">Código: {{ slot.optionItemCode }}</small>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-sm">Precio base: {{ formatPrice(getProductByCode(slot.optionItemCode)?.price || 0) }}</span>
+                                <span class="text-sm" [class]="slot.priceDelta >= 0 ? 'text-success' : 'text-danger'">
+                                    Delta: {{ slot.priceDelta >= 0 ? '+' : '' }}{{ formatPrice(slot.priceDelta) }}
+                                </span>
+                                <span class="text-sm font-medium text-primary">
+                                    Final: {{ formatPrice((getProductByCode(slot.optionItemCode)?.price || 0) + slot.priceDelta) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensaje si no hay productos disponibles -->
+                <div *ngIf="getProductOptionsForSlot(i).length === 0 && !slot.optionItemCode"
+                     class="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
+                    <div class="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        <span class="text-sm">No hay más productos disponibles para opciones de combo.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Existing Combo Options -->
+        <div class="mb-6" *ngIf="comboOptions().length > 0">
+            <h6 class="font-semibold mb-4 text-success">📋 Opciones Existentes ({{ comboOptions().length }})</h6>
+            <div class="space-y-3">
+                <div *ngFor="let option of comboOptions(); let i = index"
+                     class="p-4 border-l-4 border-l-success-500 bg-success-50 dark:bg-success-900/20 rounded-r shadow-sm">
+
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-success text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                                {{ i + 1 }}
+                            </span>
+                            <span class="font-medium text-success-800 dark:text-success-200">{{ option.optionItemName }}</span>
+                            <p-tag [value]="option.groupItemCode" severity="info" styleClass="text-xs" />
+                        </div>
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                                  size="small" (click)="removeComboOption(option)" pTooltip="Eliminar opción" />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                                <img *ngIf="option.imageUrl"
+                                     [src]="option.imageUrl"
+                                     [alt]="option.optionItemName"
+                                     class="w-10 h-10 object-cover rounded" />
+                                <i *ngIf="!option.imageUrl" class="pi pi-shopping-cart text-muted-color text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold">{{ option.optionItemName }}</p>
+                                <small class="text-muted-color">{{ option.optionItemCode }}</small>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-sm text-muted-color">Precio Base</p>
+                            <p class="font-bold text-lg">{{ formatPrice(option.optionPrice) }}</p>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-sm text-muted-color">Delta</p>
+                            <p class="font-bold text-lg" [class]="option.priceDelta >= 0 ? 'text-success' : 'text-danger'">
+                                {{ option.priceDelta >= 0 ? '+' : '' }}{{ formatPrice(option.priceDelta) }}
+                            </p>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-sm text-muted-color">Precio Final</p>
+                            <p class="font-bold text-lg text-primary">{{ formatPrice(option.finalPrice) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <p-tag *ngIf="option.isDefault === 'Y'" value="Opción por Defecto" severity="success" styleClass="text-xs" />
+                            <p-tag [value]="getUpgradeLevelLabel(option.upgradeLevel)" [severity]="getUpgradeLevelSeverity(option.upgradeLevel)" styleClass="text-xs" />
+                            <span *ngIf="option.upgradeLabel" class="text-xs text-muted-color">{{ option.upgradeLabel }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado vacío -->
+        <div *ngIf="comboOptions().length === 0 && comboOptionSlots().length === 0" class="text-center text-muted-color py-12">
+            <i class="pi pi-th-large text-6xl mb-4 block"></i>
+            <h6 class="text-xl mb-2">🍽️ Sin Opciones de Combo</h6>
+            <p class="mb-4">Este combo no tiene opciones configuradas</p>
+            <p-button
+                label="Agregar Primera Opción"
+                icon="pi pi-plus"
+                (onClick)="addComboOption()" />
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-between items-center w-full">
+            <div class="flex items-center gap-4 text-sm">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-th-large text-primary"></i>
+                    <span class="font-medium">{{ selectedCombo()?.itemName }}</span>
+                </div>
+                <div class="flex items-center gap-2 text-muted-color">
+                    <i class="pi pi-cog"></i>
+                    <span>{{ comboOptionSlots().length }} nueva(s) opción(es)</span>
+                </div>
+                <div class="flex items-center gap-2 text-muted-color">
+                    <i class="pi pi-list"></i>
+                    <span>{{ comboOptions().length }} guardada(s)</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideComboOptionsDialog()" />
+                <p-button
+                    label="💾 Guardar Opciones"
+                    icon="pi pi-check"
+                    [loading]="loading()"
+                    [disabled]="comboOptionSlots().length === 0 || !hasValidSlots()"
+                    (click)="saveAllComboOptions()" />
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary" />
+<p-toast />

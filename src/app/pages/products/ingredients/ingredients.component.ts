@@ -469,7 +469,8 @@ export class IngredientsComponent implements OnInit {
       isCustomizable: 'N', // Valor por defecto
       productTreeItemCode: this.ingredient()?.itemCode || ''
     };
-    this.components.set([...this.components(), newIngredient]);
+    // Agregar el nuevo ingrediente al inicio del array para que aparezca arriba
+    this.components.set([newIngredient, ...this.components()]);
   }
 
   selectIngredientProduct(ingredientIndex: number, product: Product) {

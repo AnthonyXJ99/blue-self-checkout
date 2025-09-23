@@ -278,80 +278,12 @@
             </div>
         </div>
 
-        <!-- Acompañamientos Existentes -->
-        <div class="mb-6" *ngIf="accompaniments().length > 0">
-            <h6 class="font-semibold mb-4 text-success">📋 Acompañamientos Existentes ({{ accompaniments().length }})</h6>
-            <div class="space-y-3">
-                <div *ngFor="let accompaniment of accompaniments(); let i = index" 
-                     class="p-4 border-l-4 border-l-success-500 bg-success-50 dark:bg-success-900/20 rounded-r shadow-sm">
-                    
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="bg-success text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
-                                {{ i + 1 }}
-                            </span>
-                            <span class="font-medium text-success-800 dark:text-success-200">{{ accompaniment.accompanimentItemName }}</span>
-                        </div>
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" 
-                                  size="small" (click)="removeAccompaniment(accompaniment)" pTooltip="Eliminar acompañamiento" />
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
-                                <img *ngIf="accompaniment.accompanimentImageUrl" 
-                                     [src]="accompaniment.accompanimentImageUrl" 
-                                     [alt]="accompaniment.accompanimentItemName" 
-                                     class="w-10 h-10 object-cover rounded" />
-                                <i *ngIf="!accompaniment.accompanimentImageUrl" class="pi pi-shopping-cart text-muted-color text-xl"></i>
-                            </div>
-                            <div>
-                                <p class="font-semibold">{{ accompaniment.accompanimentItemName }}</p>
-                                <small class="text-muted-color">{{ accompaniment.accompanimentItemCode }}</small>
-                            </div>
-                        </div>
-                        
-                        <div class="text-center">
-                            <p class="text-sm text-muted-color">Precio</p>
-                            <p class="font-bold text-lg">{{ formatPrice(accompaniment.accompanimentPrice) }}</p>
-                        </div>
-                        
-                        <div class="text-center">
-                            <p class="text-sm text-muted-color">Descuento</p>
-                            <div class="flex items-center justify-center gap-2">
-                                <span class="font-medium">{{ accompaniment.discount || 0 }}%</span>
-                                <p-tag *ngIf="hasDiscount(accompaniment)" 
-                                       [value]="accompaniment.discount + '% desc.'" 
-                                       severity="success" />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div *ngIf="hasEnlargement(accompaniment)" class="mt-3 p-2 bg-surface-100 dark:bg-surface-700 rounded text-sm">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="font-semibold">🔄 Producto ampliación: </span>
-                                <span>{{ (accompaniment.enlargementItemCode && getProductByCode(accompaniment.enlargementItemCode)?.itemName) || accompaniment.enlargementItemCode }}</span>
-                            </div>
-                            <p-tag *ngIf="accompaniment.enlargementDiscount" 
-                                   [value]="accompaniment.enlargementDiscount + '% desc.'" 
-                                   severity="info" 
-                                   styleClass="text-xs" />
-                        </div>
-                        <div class="text-xs text-muted-color mt-1">
-                            Código: {{ accompaniment.enlargementItemCode }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Lista de Acompañamientos (slots) -->
         <div class="space-y-3" *ngIf="accompanimentSlots().length > 0">
             <h6 class="font-semibold mb-4 text-primary">➕ Nuevos Acompañamientos</h6>
-            <div *ngFor="let slot of accompanimentSlots(); let i = index" 
+            <div *ngFor="let slot of accompanimentSlots(); let i = index"
                  class="p-4 border-l-4 border-l-primary-500 bg-surface-0 dark:bg-surface-900 rounded-r shadow-sm">
-                
+
                 <!-- Header del acompañamiento -->
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
@@ -360,10 +292,10 @@
                         </span>
                         <span class="font-medium">Acompañamiento {{ i + 1 }}</span>
                     </div>
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" 
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                               size="small" (click)="removeAccompanimentSlot(i)" pTooltip="Eliminar acompañamiento" />
                 </div>
-                
+
                 <!-- Selección de producto y datos -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
@@ -384,11 +316,11 @@
                     </div>
                     <div>
                         <label class="block font-medium mb-2">💰 Descuento (%)</label>
-                        <p-inputnumber 
+                        <p-inputnumber
                             [(ngModel)]="slot.discount"
-                            [min]="0" 
+                            [min]="0"
                             [max]="100"
-                            [showButtons]="true" 
+                            [showButtons]="true"
                             [disabled]="!slot.accompanimentItemCode"
                             suffix="%"
                             fluid />
@@ -411,11 +343,11 @@
                     </div>
                     <div>
                         <label class="block font-medium mb-2">💸 Descuento Ampliación (%)</label>
-                        <p-inputnumber 
+                        <p-inputnumber
                             [(ngModel)]="slot.enlargementDiscount"
-                            [min]="0" 
+                            [min]="0"
                             [max]="100"
-                            [showButtons]="true" 
+                            [showButtons]="true"
                             [disabled]="!slot.accompanimentItemCode || !slot.enlargementItemCode"
                             suffix="%"
                             placeholder="Opcional"
@@ -423,14 +355,14 @@
                         <small class="text-muted-color">Solo si hay código de ampliación</small>
                     </div>
                 </div>
-                
+
                 <!-- Información del producto seleccionado -->
                 <div *ngIf="slot.accompanimentItemCode" class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
-                            <img *ngIf="getProductByCode(slot.accompanimentItemCode)?.imageUrl" 
-                                 [src]="getProductByCode(slot.accompanimentItemCode)!.imageUrl" 
-                                 [alt]="getProductByCode(slot.accompanimentItemCode)!.itemName" 
+                            <img *ngIf="getProductByCode(slot.accompanimentItemCode)?.imageUrl"
+                                 [src]="getProductByCode(slot.accompanimentItemCode)!.imageUrl"
+                                 [alt]="getProductByCode(slot.accompanimentItemCode)!.itemName"
                                  class="w-10 h-10 object-cover rounded" />
                             <i *ngIf="!getProductByCode(slot.accompanimentItemCode)?.imageUrl" class="pi pi-shopping-cart text-muted-color text-xl"></i>
                         </div>
@@ -439,16 +371,16 @@
                             <small class="text-muted-color">Código: {{ slot.accompanimentItemCode }}</small>
                             <div class="flex items-center gap-2 mt-1">
                                 <span class="text-sm font-medium">{{ formatPrice(getProductByCode(slot.accompanimentItemCode)?.price || 0) }}</span>
-                                <p-tag *ngIf="slot.discount && slot.discount > 0" 
-                                       [value]="slot.discount + '% desc.'" 
+                                <p-tag *ngIf="slot.discount && slot.discount > 0"
+                                       [value]="slot.discount + '% desc.'"
                                        severity="success" />
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Mensaje si no hay productos disponibles -->
-                <div *ngIf="getAccompanimentOptionsForSlot(i).length === 0 && !slot.accompanimentItemCode" 
+                <div *ngIf="getAccompanimentOptionsForSlot(i).length === 0 && !slot.accompanimentItemCode"
                      class="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
                     <div class="flex items-center gap-2 text-orange-600 dark:text-orange-400">
                         <i class="pi pi-exclamation-triangle"></i>
@@ -457,7 +389,75 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Acompañamientos Existentes -->
+        <div class="mb-6" *ngIf="accompaniments().length > 0">
+            <h6 class="font-semibold mb-4 text-success">📋 Acompañamientos Existentes ({{ accompaniments().length }})</h6>
+            <div class="space-y-3">
+                <div *ngFor="let accompaniment of accompaniments(); let i = index"
+                     class="p-4 border-l-4 border-l-success-500 bg-success-50 dark:bg-success-900/20 rounded-r shadow-sm">
+
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-success text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                                {{ i + 1 }}
+                            </span>
+                            <span class="font-medium text-success-800 dark:text-success-200">{{ accompaniment.accompanimentItemName }}</span>
+                        </div>
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                                  size="small" (click)="removeAccompaniment(accompaniment)" pTooltip="Eliminar acompañamiento" />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
+                                <img *ngIf="accompaniment.accompanimentImageUrl"
+                                     [src]="accompaniment.accompanimentImageUrl"
+                                     [alt]="accompaniment.accompanimentItemName"
+                                     class="w-10 h-10 object-cover rounded" />
+                                <i *ngIf="!accompaniment.accompanimentImageUrl" class="pi pi-shopping-cart text-muted-color text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold">{{ accompaniment.accompanimentItemName }}</p>
+                                <small class="text-muted-color">{{ accompaniment.accompanimentItemCode }}</small>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-sm text-muted-color">Precio</p>
+                            <p class="font-bold text-lg">{{ formatPrice(accompaniment.accompanimentPrice) }}</p>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-sm text-muted-color">Descuento</p>
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="font-medium">{{ accompaniment.discount || 0 }}%</span>
+                                <p-tag *ngIf="hasDiscount(accompaniment)"
+                                       [value]="accompaniment.discount + '% desc.'"
+                                       severity="success" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="hasEnlargement(accompaniment)" class="mt-3 p-2 bg-surface-100 dark:bg-surface-700 rounded text-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold">🔄 Producto ampliación: </span>
+                                <span>{{ (accompaniment.enlargementItemCode && getProductByCode(accompaniment.enlargementItemCode)?.itemName) || accompaniment.enlargementItemCode }}</span>
+                            </div>
+                            <p-tag *ngIf="accompaniment.enlargementDiscount"
+                                   [value]="accompaniment.enlargementDiscount + '% desc.'"
+                                   severity="info"
+                                   styleClass="text-xs" />
+                        </div>
+                        <div class="text-xs text-muted-color mt-1">
+                            Código: {{ accompaniment.enlargementItemCode }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Estado vacío -->
         <div *ngIf="accompaniments().length === 0 && accompanimentSlots().length === 0" class="text-center text-muted-color py-12">
             <i class="pi pi-shopping-cart text-6xl mb-4 block"></i>

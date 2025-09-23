@@ -121,6 +121,7 @@
                 Rating
                 <p-sortIcon field="rating" />
             </th>
+            <th style="min-width: 8rem">Combo</th>
             <th style="min-width: 10rem">Estado</th>
             <th style="min-width: 12rem"></th>
         </tr>
@@ -184,6 +185,14 @@
                 <div class="flex items-center gap-2">
                     <p-rating [(ngModel)]="product.rating" [readonly]="true" [stars]="5" />
                     <span class="text-sm font-medium">{{ product.rating | number:'1.1-1' }}</span>
+                </div>
+            </td>
+            <td style="min-width: 8rem">
+                <div class="flex justify-center">
+                    <p-tag
+                        [value]="product.isCombo === 'Y' ? 'Combo' : 'Simple'"
+                        [severity]="product.isCombo === 'Y' ? 'info' : 'secondary'"
+                        [icon]="product.isCombo === 'Y' ? 'pi pi-th-large' : 'pi pi-circle'" />
                 </div>
             </td>
             <td style="min-width: 10rem">
@@ -335,12 +344,12 @@
                             </div>
                             
                             <!-- Estados -->
-                            <div class="grid grid-cols-3 gap-4">
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>
                                     <label for="sellItem" class="block font-bold mb-3">Se Vende *</label>
-                                    <p-checkbox 
+                                    <p-checkbox
                                         id="sellItem"
-                                        [(ngModel)]="product()!.sellItem" 
+                                        [(ngModel)]="product()!.sellItem"
                                         [binary]="true"
                                         [trueValue]="'Y'"
                                         [falseValue]="'N'"
@@ -351,9 +360,9 @@
                                 </div>
                                 <div>
                                     <label for="available" class="block font-bold mb-3">Disponible *</label>
-                                    <p-checkbox 
+                                    <p-checkbox
                                         id="available"
-                                        [(ngModel)]="product()!.available" 
+                                        [(ngModel)]="product()!.available"
                                         [binary]="true"
                                         [trueValue]="'Y'"
                                         [falseValue]="'N'"
@@ -364,9 +373,9 @@
                                 </div>
                                 <div>
                                     <label for="enabled" class="block font-bold mb-3">Activo *</label>
-                                    <p-checkbox 
+                                    <p-checkbox
                                         id="enabled"
-                                        [(ngModel)]="product()!.enabled" 
+                                        [(ngModel)]="product()!.enabled"
                                         [binary]="true"
                                         [trueValue]="'Y'"
                                         [falseValue]="'N'"
@@ -374,6 +383,18 @@
                                         required>
                                     </p-checkbox>
                                     <small class="text-red-500" *ngIf="submitted() && !product()!.enabled">Requerido.</small>
+                                </div>
+                                <div>
+                                    <label for="isCombo" class="block font-bold mb-3">Es Combo</label>
+                                    <p-checkbox
+                                        id="isCombo"
+                                        [(ngModel)]="product()!.isCombo"
+                                        [binary]="true"
+                                        [trueValue]="'Y'"
+                                        [falseValue]="'N'"
+                                        label="Sí">
+                                    </p-checkbox>
+                                    <small class="text-muted-color">Marcar si es un producto combo</small>
                                 </div>
                             </div>
 
@@ -427,6 +448,7 @@
                             label="Imagen del Producto"
                             [selectedImageUrl]="product()!.imageUrl || ''"
                             [selectedImageTitle]="product()!.itemName || 'Imagen del producto'"
+                            tipo="Item"
                             (imageSelected)="onImageSelected($event)"
                             (imageCleared)="onImageCleared()">
                         </app-image-selector>
@@ -448,110 +470,14 @@
                     </div>
                 </p-tabpanel>
                 
-                <!-- Pestaña Ingredientes -->
-                <p-tabpanel header="Ingredientes ({{ materials().length }})">
-                    <div class="flex flex-col gap-4">
-                        <div class="flex justify-between items-center">
-                            <h6 class="font-semibold">Ingredientes del Producto</h6>
-                        </div>
-                        
-                       
-                        
-                        <div class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg" *ngIf="materials().length > 0">
-                            <div class="grid grid-cols-1 gap-3">
-                                <div *ngFor="let material of materials(); let i = index" class="flex items-center p-3 border-b border-surface-200 dark:border-surface-700 last:border-b-0">
-                                    <div class="w-16 h-16 flex-shrink-0 mr-4 overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700">
-                                        <img *ngIf="material.imageUrl" [src]="material.imageUrl" alt="Imagen del material" class="w-full h-full object-cover" />
-                                        <div *ngIf="!material.imageUrl" class="w-full h-full flex items-center justify-center bg-surface-50 dark:bg-surface-800">
-                                            <i class="pi pi-image text-surface-400"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex justify-between">
-                                            <div class="text-base font-medium">{{ material.itemName || 'N/A' }}</div>
-                                            <div class="text-sm text-muted-color">{{ material.itemCode || 'N/A' }}</div>
-                                        </div>
-                                        <div class="flex justify-between mt-1">
-                                            <div class="text-sm">Cantidad: <span class="font-medium">{{ material.quantity || 0 }}</span></div>
-                                            <p-tag [severity]="material.isCustomizable=='Y' ? 'success' : 'info'" [value]="material.isCustomizable=='Y' ? 'Personalizable' : 'No Personalizable'" [rounded]="true" [icon]="material.isCustomizable ? 'pi pi-star' : 'pi pi-circle'" styleClass="text-xs"></p-tag>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div *ngIf="materials().length === 0" class="text-center text-muted-color py-8 px-4 border border-dashed border-surface-300 dark:border-surface-600 rounded-lg">
-                            <i class="pi pi-box text-4xl mb-3 block"></i>
-                            <h6 class="text-lg mb-2">No hay Ingredientes agregados</h6>
-                            <p class="mb-2 text-sm">Los Ingredientes son componentes que forman parte del producto</p>
-                            <div class="flex gap-2 justify-center mt-3">
-                                <p-button 
-                                    label="Ver Ingredientes"
-                                    icon="pi pi-external-link" 
-                                    severity="secondary" 
-                                    size="small"
-                                    outlined 
-                                    (onClick)="navigateToIngredients()"
-                                    *ngIf="hasAvailableIngredients()" />
-                            </div>
-                        </div>
-                    </div>
-                </p-tabpanel>
-                
-                <!-- Pestaña Acompañamientos -->
-                <p-tabpanel header="Acompañamientos ({{ accompaniments().length }})">
-                    <div class="flex flex-col gap-4">
-                        <div class="flex justify-between items-center">
-                            <h6 class="font-semibold">Acompañamientos del Producto</h6>
-                        </div>
-                        
-                        <div class="p-4 border border-surface-200 dark:border-surface-700 rounded-lg" *ngIf="accompaniments().length > 0">
-                            <div class="grid grid-cols-1 gap-3">
-                                <div *ngFor="let accompaniment of accompaniments(); let i = index" class="flex items-center p-3 border-b border-surface-200 dark:border-surface-700 last:border-b-0">
-                                    <div class="w-16 h-16 flex-shrink-0 mr-4 overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700">
-                                        <img *ngIf="accompaniment.imageUrl" [src]="accompaniment.imageUrl" alt="Imagen del acompañamiento" class="w-full h-full object-cover" />
-                                        <div *ngIf="!accompaniment.imageUrl" class="w-full h-full flex items-center justify-center bg-surface-50 dark:bg-surface-800">
-                                            <i class="pi pi-image text-surface-400"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex justify-between">
-                                            <div class="text-base font-medium">{{ accompaniment.itemName || 'N/A' }}</div>
-                                            <div class="text-sm text-muted-color">{{ accompaniment.itemCode || 'N/A' }}</div>
-                                        </div>
-                                        <div class="flex justify-between mt-1">
-                                            <div class="text-sm">
-                                                <span class="font-medium">{{ accompaniment.price | currency:'USD' }}</span>
-                                                <span *ngIf="accompaniment.priceOld > 0" class="text-xs line-through ml-2 text-muted-color">{{ accompaniment.priceOld | currency:'USD' }}</span>
-                                            </div>
-                                            <p-tag *ngIf="accompaniment.priceOld > 0 && accompaniment.price > 0" [value]="((accompaniment.priceOld - accompaniment.price) / accompaniment.priceOld * 100).toFixed(0) + '%'" severity="success" [rounded]="true" icon="pi pi-tag" styleClass="text-xs"></p-tag>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div *ngIf="accompaniments().length === 0" class="text-center text-muted-color py-8 px-4 border border-dashed border-surface-300 dark:border-surface-600 rounded-lg">
-                            <i class="pi pi-list text-4xl mb-3 block"></i>
-                            <h6 class="text-lg mb-2">No hay acompañamientos agregados</h6>
-                            <p class="mb-2 text-sm">Los acompañamientos son productos adicionales que se pueden ofrecer</p>
-                        </div>
-                    </div>
-                </p-tabpanel>
             </p-tabview>
         </div>
     </ng-template>
 
     <ng-template pTemplate="footer">
-        <div class="flex justify-between items-center w-full">
-            <div class="text-sm text-muted-color">
-                <span *ngIf="materials().length > 0">{{ materials().length }} material(es) • </span>
-                <span *ngIf="accompaniments().length > 0">{{ accompaniments().length }} acompañamiento(s)</span>
-            </div>
-            <div class="flex gap-2">
-                <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
-                <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveProduct()" />
-            </div>
+        <div class="flex justify-end gap-2">
+            <p-button label="Cancelar" icon="pi pi-times" outlined (click)="hideDialog()" />
+            <p-button label="Guardar" icon="pi pi-check" [loading]="loading()" (click)="saveProduct()" />
         </div>
     </ng-template>
 </p-dialog>

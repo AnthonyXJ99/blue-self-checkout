@@ -1,0 +1,318 @@
+{
+  "combo_api_instructions": {
+    "description": "Instrucciones completas para trabajar con combos usando ProductsController",
+    "base_url": "https://localhost:7115/api/Products",
+
+    "getting_combos": {
+      "title": "OBTENER DATOS DE COMBOS",
+
+      "get_all_combos": {
+        "endpoint": "GET /api/Products/combos",
+        "description": "Obtiene todos los productos que son combos con sus opciones",
+        "filters": "Solo combos habilitados (IsCombo='Y', Available='Y', Enabled='Y')",
+        "response_example": [
+          {
+            "itemCode": "COMBO001",
+            "itemName": "Combo Big Mac",
+            "frgnName": "Big Mac Combo",
+            "price": 25.90,
+            "discount": null,
+            "imageUrl": "https://localhost:7115/images/combo_big_mac.jpg",
+            "description": "Combo con hamburguesa, papas y bebida",
+            "frgnDescription": "Combo with burger, fries and drink",
+            "isCombo": "Y",
+            "groupItemCode": "COMBOS",
+            "categoryItemCode": "FOOD",
+            "waitingTime": "15",
+            "rating": 4.8,
+            "comboOptions": [
+              {
+                "itemCode": "COMBO001",
+                "groupItemCode": "DRINKS",
+                "optionItemCode": "COKE_500",
+                "optionItemName": "Coca Cola 500ml",
+                "optionPrice": 3.50,
+                "priceDelta": 0.00,
+                "finalPrice": 3.50,
+                "isDefault": "Y",
+                "upgradeLevel": 0,
+                "upgradeLabel": "500ml",
+                "imageUrl": "https://localhost:7115/images/coke_500.jpg",
+                "description": "Coca Cola refrescante"
+              },
+              {
+                "itemCode": "COMBO001",
+                "groupItemCode": "DRINKS",
+                "optionItemCode": "COKE_750",
+                "optionItemName": "Coca Cola 750ml",
+                "optionPrice": 4.50,
+                "priceDelta": 2.50,
+                "finalPrice": 7.00,
+                "isDefault": "N",
+                "upgradeLevel": 1,
+                "upgradeLabel": "750ml",
+                "imageUrl": "https://localhost:7115/images/coke_750.jpg",
+                "description": "Coca Cola grande"
+              }
+            ]
+          }
+        ]
+      },
+
+      "get_specific_combo": {
+        "endpoint": "GET /api/Products/{productCode}/combo-options",
+        "description": "Obtiene las opciones de combo de un producto específico",
+        "example_request": "GET /api/Products/COMBO001/combo-options",
+        "validations": [
+          "Verifica que el producto existe",
+          "Verifica que el producto sea un combo (IsCombo='Y')"
+        ],
+        "response_structure": "Mismo que get_all_combos pero para un solo producto"
+      }
+    },
+
+    "creating_combos": {
+      "title": "CREAR Y GESTIONAR COMBOS",
+
+      "step_1_create_product": {
+        "endpoint": "POST /api/Products",
+        "description": "Primero crear el producto combo principal",
+        "request_body": {
+          "itemCode": "COMBO002",
+          "eanCode": "1234567890125",
+          "itemName": "Combo Deluxe",
+          "frgnName": "Deluxe Combo",
+          "price": 35.90,
+          "discount": null,
+          "imageUrl": "/images/combo_deluxe.jpg",
+          "description": "Combo premium con extras",
+          "frgnDescription": "Premium combo with extras",
+          "sellItem": "Y",
+          "available": "Y",
+          "enabled": "Y",
+          "groupItemCode": "COMBOS",
+          "categoryItemCode": "FOOD",
+          "waitingTime": "20",
+          "rating": null,
+          "isCombo": "Y"
+        },
+        "important_note": "¡CRÍTICO! Debe tener isCombo: 'Y' para que sea considerado combo"
+      },
+
+      "step_2_create_combo_options": {
+        "endpoint": "POST /api/Products/{productCode}/combo-options",
+        "description": "Agregar opciones al combo (una por una)",
+
+        "option_1_drinks": {
+          "example_request": "POST /api/Products/COMBO002/combo-options",
+          "request_body": {
+            "groupItemCode": "DRINKS",
+            "optionItemCode": "COKE_500",
+            "isDefault": "Y",
+            "priceDelta": 0.00,
+            "upgradeLevel": 0,
+            "upgradeLabel": "500ml"
+          },
+          "note": "itemCode se auto-asigna desde la URL"
+        },
+
+        "option_2_drinks_upgrade": {
+          "example_request": "POST /api/Products/COMBO002/combo-options",
+          "request_body": {
+            "groupItemCode": "DRINKS",
+            "optionItemCode": "COKE_750",
+            "isDefault": "N",
+            "priceDelta": 2.50,
+            "upgradeLevel": 1,
+            "upgradeLabel": "750ml - Upgrade"
+          }
+        },
+
+        "option_3_fries": {
+          "example_request": "POST /api/Products/COMBO002/combo-options",
+          "request_body": {
+            "groupItemCode": "FRIES",
+            "optionItemCode": "FRIES_M",
+            "isDefault": "Y",
+            "priceDelta": 0.00,
+            "upgradeLevel": 0,
+            "upgradeLabel": "Medianas"
+          }
+        },
+
+        "option_4_fries_upgrade": {
+          "example_request": "POST /api/Products/COMBO002/combo-options",
+          "request_body": {
+            "groupItemCode": "FRIES",
+            "optionItemCode": "FRIES_L",
+            "isDefault": "N",
+            "priceDelta": 3.00,
+            "upgradeLevel": 1,
+            "upgradeLabel": "Grandes - Upgrade"
+          }
+        },
+
+        "validations": [
+          "El producto principal debe existir",
+          "El producto principal debe ser combo (IsCombo='Y')",
+          "El producto opción (optionItemCode) debe existir",
+          "No debe existir la misma combinación (itemCode + groupItemCode + optionItemCode)"
+        ]
+      }
+    },
+
+    "updating_combos": {
+      "title": "ACTUALIZAR COMBOS",
+
+      "update_combo_option": {
+        "endpoint": "PUT /api/Products/{productCode}/combo-options/{groupCode}/{optionCode}",
+        "description": "Actualiza una opción específica del combo",
+        "example_request": "PUT /api/Products/COMBO002/combo-options/DRINKS/COKE_750",
+        "request_body": {
+          "isDefault": "N",
+          "priceDelta": 1.50,
+          "upgradeLevel": 1,
+          "upgradeLabel": "750ml - Oferta especial"
+        },
+        "note": "Solo se pueden actualizar: isDefault, priceDelta, upgradeLevel, upgradeLabel"
+      }
+    },
+
+    "deleting_combos": {
+      "title": "ELIMINAR COMBOS",
+
+      "delete_combo_option": {
+        "endpoint": "DELETE /api/Products/{productCode}/combo-options/{groupCode}/{optionCode}",
+        "description": "Elimina una opción específica del combo",
+        "example_request": "DELETE /api/Products/COMBO002/combo-options/DRINKS/COKE_750",
+        "response": "204 No Content si es exitoso"
+      },
+
+      "delete_entire_combo": {
+        "endpoint": "DELETE /api/Products/{productCode}",
+        "description": "Elimina el producto combo completo",
+        "example_request": "DELETE /api/Products/COMBO002",
+        "note": "Esto eliminará el producto principal. Las opciones de combo se eliminan por cascada."
+      }
+    },
+
+    "combo_structure_explanation": {
+      "title": "EXPLICACIÓN DE LA ESTRUCTURA",
+
+      "concept": "Un combo es un producto con múltiples opciones agrupadas por categorías",
+
+      "example_structure": {
+        "combo_product": "COMBO001 - Big Mac Combo",
+        "option_groups": [
+          {
+            "groupItemCode": "DRINKS",
+            "description": "Grupo de bebidas disponibles",
+            "options": [
+              "COKE_500 (default, +$0.00)",
+              "COKE_750 (upgrade, +$2.50)",
+              "SPRITE_500 (alternative, +$0.00)"
+            ]
+          },
+          {
+            "groupItemCode": "FRIES",
+            "description": "Grupo de papas disponibles",
+            "options": [
+              "FRIES_M (default, +$0.00)",
+              "FRIES_L (upgrade, +$3.00)",
+              "ONION_RINGS (alternative, +$1.50)"
+            ]
+          }
+        ]
+      },
+
+      "price_calculation": {
+        "formula": "Precio Final = Precio Base del Combo + PriceDelta de cada opción seleccionada",
+        "example": {
+          "base_price": 25.90,
+          "selected_options": [
+            {"item": "COKE_750", "priceDelta": 2.50},
+            {"item": "FRIES_L", "priceDelta": 3.00}
+          ],
+          "total_price": "25.90 + 2.50 + 3.00 = $31.40"
+        }
+      }
+    },
+
+    "workflow_example": {
+      "title": "FLUJO COMPLETO DE EJEMPLO",
+
+      "scenario": "Crear combo 'Triple Deluxe' con bebidas y acompañamientos",
+
+      "steps": [
+        {
+          "step": 1,
+          "action": "Crear producto combo principal",
+          "method": "POST /api/Products",
+          "data": {
+            "itemCode": "TRIPLE_DELUXE",
+            "itemName": "Triple Deluxe Combo",
+            "price": 45.90,
+            "isCombo": "Y",
+            "groupItemCode": "COMBOS",
+            "categoryItemCode": "PREMIUM"
+          }
+        },
+        {
+          "step": 2,
+          "action": "Agregar opciones de bebidas",
+          "requests": [
+            {
+              "method": "POST /api/Products/TRIPLE_DELUXE/combo-options",
+              "data": {"groupItemCode": "DRINKS", "optionItemCode": "COKE_500", "isDefault": "Y", "priceDelta": 0}
+            },
+            {
+              "method": "POST /api/Products/TRIPLE_DELUXE/combo-options",
+              "data": {"groupItemCode": "DRINKS", "optionItemCode": "COKE_750", "isDefault": "N", "priceDelta": 2.5}
+            }
+          ]
+        },
+        {
+          "step": 3,
+          "action": "Agregar opciones de acompañamientos",
+          "requests": [
+            {
+              "method": "POST /api/Products/TRIPLE_DELUXE/combo-options",
+              "data": {"groupItemCode": "SIDES", "optionItemCode": "FRIES_L", "isDefault": "Y", "priceDelta": 0}
+            },
+            {
+              "method": "POST /api/Products/TRIPLE_DELUXE/combo-options",
+              "data": {"groupItemCode": "SIDES", "optionItemCode": "ONION_RINGS", "isDefault": "N", "priceDelta": 4.0}
+            }
+          ]
+        },
+        {
+          "step": 4,
+          "action": "Verificar combo creado",
+          "method": "GET /api/Products/TRIPLE_DELUXE/combo-options",
+          "expected": "Producto con todas las opciones configuradas"
+        }
+      ]
+    },
+
+    "important_notes": {
+      "prerequisites": [
+        "Los productos que serán opciones del combo (COKE_500, FRIES_L, etc.) deben existir previamente",
+        "El producto principal debe tener isCombo='Y'",
+        "Los grupos (DRINKS, FRIES, SIDES, etc.) son códigos lógicos para agrupar opciones"
+      ],
+
+      "best_practices": [
+        "Siempre tener al menos una opción con isDefault='Y' por grupo",
+        "Usar upgradeLevel para organizar opciones (0=básico, 1=premium, 2=deluxe)",
+        "PriceDelta puede ser negativo para descuentos",
+        "UpgradeLabel debe ser descriptivo para el usuario"
+      ],
+
+      "error_handling": [
+        "400 Bad Request: Datos inválidos o producto no es combo",
+        "404 Not Found: Producto principal o producto opción no existe",
+        "409 Conflict: Combinación de opción ya existe"
+      ]
+    }
+  }
+}

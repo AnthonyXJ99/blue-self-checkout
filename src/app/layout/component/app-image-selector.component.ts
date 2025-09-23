@@ -356,6 +356,7 @@ export class ImageSelectorComponent implements OnInit {
   @Input() selectedImageUrl: string = '';
   @Input() selectedImageTitle: string = '';
   @Input() filterByType: ImageType | null = null; // Para filtrar por tipo específico
+  @Input() tipo: ImageType | null = null; // Filtro opcional por tipo de imagen
   
   @Output() imageSelected = new EventEmitter<{ url: string; title: string; imageCode: string  }>();
   @Output() imageCleared = new EventEmitter<void>();
@@ -384,20 +385,8 @@ export class ImageSelectorComponent implements OnInit {
   };
 
   // Opciones
-  imageTypes = [
-    { label: 'Todos los tipos', value: '' },
-    { label: 'Logo', value: 'Logo' },
-    { label: 'Publicidad', value: 'Publicidad' },
-    { label: 'Banner', value: 'Banner' },
-    { label: 'Items', value: 'Item' }
-  ];
-
-  imageTypesForUpload = [
-    { label: 'Logo', value: 'Logo' },
-    { label: 'Banner', value: 'Banner' },
-    { label: 'Publicidad', value: 'Publicidad' },
-    { label: 'Items', value: 'Item' }
-  ];
+  imageTypes: { label: string; value: string }[] = [];
+  imageTypesForUpload: { label: string; value: string }[] = [];
 
   constructor(
     private imageRepository: ImageRepository,
@@ -405,7 +394,35 @@ export class ImageSelectorComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.initializeImageTypes();
     this.loadImages();
+  }
+
+  private initializeImageTypes() {
+    const allTypes = [
+      { label: 'Logo', value: 'Logo' },
+      { label: 'Banner', value: 'Banner' },
+      { label: 'Publicidad', value: 'Publicidad' },
+      { label: 'Items', value: 'Item' }
+    ];
+
+    // Si se especifica un tipo, filtrar solo ese tipo
+    if (this.tipo) {
+      this.imageTypes = [
+        { label: 'Todos los tipos', value: '' },
+        ...allTypes.filter(type => type.value === this.tipo)
+      ];
+      this.imageTypesForUpload = allTypes.filter(type => type.value === this.tipo);
+      // Establecer el tipo por defecto para upload
+      this.uploadData.imageType = this.tipo;
+    } else {
+      // Mostrar todos los tipos
+      this.imageTypes = [
+        { label: 'Todos los tipos', value: '' },
+        ...allTypes
+      ];
+      this.imageTypesForUpload = allTypes;
+    }
   }
 
   // === MÉTODOS PRINCIPALES ===

@@ -31,7 +31,7 @@ import { ProductRepository } from './repositories/product.repository';
 import { ProductGroupRepository } from '../product-group/repositories/product-group.repository';
 import { ProductCategoryRepository } from '../category/repositories/product-category.repository';
 import { ProductTreeApiService } from '../../service/product-tree-api.service';
-import { Product, ProductCreateRequest, ProductUpdateRequest, ProductMaterial, ProductAccompaniment } from './model/product.model';
+import { Product, ProductCreateRequest, ProductUpdateRequest } from './model/product.model';
 import { ProductGroup } from '../product-group/model/product-group.model';
 import { ProductCategory } from '../category/model/product-category.model'; 
 import { ImageSelectorComponent } from '../../../layout/component/app-image-selector.component';
@@ -102,9 +102,6 @@ export class ProductComponent implements OnInit {
   minPrice = signal<number | null>(null);
   maxPrice = signal<number | null>(null);
 
-  // Materiales y acompañamientos
-  materials = signal<ProductMaterial[]>([]);
-  accompaniments = signal<ProductAccompaniment[]>([]);
   
   // Ingredientes disponibles
   availableIngredients = signal<number>(0);
@@ -186,16 +183,12 @@ export class ProductComponent implements OnInit {
       material: [],
       accompaniment: []
     });
-    this.materials.set([]);
-    this.accompaniments.set([]);
     this.submitted.set(false);
     this.productDialog = true;
   }
 
   editProduct(product: ProductItem) {
     this.product.set({ ...product });
-    this.materials.set([...product.material]);
-    this.accompaniments.set([...product.accompaniment]);
     this.productDialog = true;
   }
 
@@ -320,11 +313,11 @@ export class ProductComponent implements OnInit {
 
     this.loading.set(true);
 
-    // Agregar materiales y acompañamientos
+    // Preparar datos del producto
     const productData = {
       ...currentProduct,
-      material: this.materials(),
-      accompaniment: this.accompaniments()
+      material: currentProduct.material || [],
+      accompaniment: currentProduct.accompaniment || []
     };
 
     //recupeamos la ulr de la imagen
@@ -463,57 +456,6 @@ export class ProductComponent implements OnInit {
     }
   }
 
-  // === GESTIÓN DE MATERIALES ===
-
-  addMaterial() {
-    const newMaterial: ProductMaterial = {
-      itemCode: '',
-      itemName: '',
-      quantity: 1,
-      imageUrl: '',
-      isCustomizable: 'N',
-      productItemCode: this.product()?.itemCode || ''
-    };
-    this.materials.set([...this.materials(), newMaterial]);
-  }
-
-  removeMaterial(index: number) {
-    const materials = [...this.materials()];
-    materials.splice(index, 1);
-    this.materials.set(materials);
-  }
-
-  updateMaterial(index: number, material: ProductMaterial) {
-    const materials = [...this.materials()];
-    materials[index] = material;
-    this.materials.set(materials);
-  }
-
-  // === GESTIÓN DE ACOMPAÑAMIENTOS ===
-
-  addAccompaniment() {
-    const newAccompaniment: ProductAccompaniment = {
-      itemCode: '',
-      itemName: '',
-      priceOld: 0,
-      price: 0,
-      imageUrl: '',
-      productItemCode: this.product()?.itemCode || ''
-    };
-    this.accompaniments.set([...this.accompaniments(), newAccompaniment]);
-  }
-
-  removeAccompaniment(index: number) {
-    const accompaniments = [...this.accompaniments()];
-    accompaniments.splice(index, 1);
-    this.accompaniments.set(accompaniments);
-  }
-
-  updateAccompaniment(index: number, accompaniment: ProductAccompaniment) {
-    const accompaniments = [...this.accompaniments()];
-    accompaniments[index] = accompaniment;
-    this.accompaniments.set(accompaniments);
-  }
 
   // === FILTROS ===
 

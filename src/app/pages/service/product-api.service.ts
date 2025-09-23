@@ -367,6 +367,7 @@ import { ApiResponse } from "../../core/model/api-response.model";
         sellItem: 'Y',
         available: 'Y',
         enabled: 'Y',
+        isCombo: 'N',
         groupItemCode: '',
         categoryItemCode: '',
         waitingTime: '',
