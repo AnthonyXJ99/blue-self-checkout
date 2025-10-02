@@ -27,10 +27,12 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ComboApiService } from '../../service/combo-api.service';
 import { ComboRepository } from './repositories/combo.repository';
 import { ProductRepository } from '../product/repositories/product.repository';
+import { ProductGroupsService } from '../../service/product-group.service';
 
 // Models
 import { ComboProduct, ComboOption, ComboOptionSlot, ComboOptionCreateRequest } from './model/combo.model';
 import { Product } from '../product/model/product.model';
+import { ProductGroup } from '../product-group/model/product-group.model';
 
 // Utilities
 import { finalize, firstValueFrom } from 'rxjs';
@@ -71,6 +73,7 @@ export class CombosComponent implements OnInit {
   combos = signal<ComboProduct[]>([]);
   availableComboProducts = signal<Product[]>([]);
   availableProducts = signal<Product[]>([]);
+  productGroups = signal<ProductGroup[]>([]);
   selectedCombo = signal<ComboProduct | null>(null);
   comboOptions = signal<ComboOption[]>([]);
   comboOptionSlots = signal<ComboOptionSlot[]>([]);
@@ -89,6 +92,7 @@ export class CombosComponent implements OnInit {
     private comboApiService: ComboApiService,
     private comboRepository: ComboRepository,
     private productRepository: ProductRepository,
+    private productGroupsService: ProductGroupsService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService
   ) {}
@@ -98,6 +102,7 @@ export class CombosComponent implements OnInit {
     this.loadCombos();
     this.loadAvailableProducts();
     this.loadAvailableComboProducts();
+    this.loadProductGroups();
   }
 
   // ===== LOAD DATA =====
@@ -149,6 +154,24 @@ export class CombosComponent implements OnInit {
     });
   }
 
+  loadProductGroups() {
+    this.productGroupsService.getEnabledProductGroups().subscribe({
+      next: (groups) => {
+        this.productGroups.set(groups);
+        console.log('✅ Product groups loaded:', groups.length);
+      },
+      error: (error) => {
+        console.error('❌ Error loading product groups:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudieron cargar los grupos de productos',
+          life: 5000
+        });
+      }
+    });
+  }
+
   // ===== COMBO SELECTION =====
 
   openNew() {
@@ -166,16 +189,16 @@ export class CombosComponent implements OnInit {
         next: (comboData) => {
           if (comboData) {
             this.selectedCombo.set(comboData as ComboProduct);
-            this.comboOptions.set(comboData.comboOptions || []);
+            this.comboOptions.set(comboData.options || []);
             this.comboSelectionDialog = false;
             this.comboOptionsDialog = true;
-            console.log('✅ Combo options loaded:', comboData.comboOptions?.length || 0);
+            console.log('✅ Combo options loaded:', comboData.options?.length || 0);
           } else {
             // Si no tiene opciones, crear estructura básica
             this.selectedCombo.set({
               ...combo,
               isCombo: 'Y',
-              comboOptions: []
+              options: []
             } as ComboProduct);
             this.comboOptions.set([]);
             this.comboSelectionDialog = false;
@@ -199,12 +222,16 @@ export class CombosComponent implements OnInit {
   addComboOption() {
     console.log('➕ Adding new combo option slot');
     const newSlot: ComboOptionSlot = {
-      groupItemCode: '',
-      optionItemCode: '',
+      componentLineNum: 0,
+      groupCode: '',
+      itemCode: '',
       isDefault: 'N',
-      priceDelta: 0,
-      upgradeLevel: 0,
-      upgradeLabel: ''
+      priceDiff: 0,
+      upLevel: 0,
+      upLabel: '',
+      lineNum: 0,
+      displayOrder: 0,
+      available: 'Y'
     };
 
     // Agregar al inicio del array para que aparezca arriba
@@ -229,14 +256,15 @@ export class CombosComponent implements OnInit {
 
   async deleteComboOptionFromAPI(option: ComboOption) {
     try {
+      // NEW API: Solo necesita comboCode y optionCode (sin groupCode en URL)
       const success = await firstValueFrom(
-        this.comboApiService.deleteComboOption(option.itemCode, option.groupItemCode, option.optionItemCode)
+        this.comboApiService.deleteComboOption(option.itemCode, option.optionCode.toString())
       );
 
       if (success) {
         this.comboOptions.update(options =>
           options.filter(opt =>
-            !(opt.groupItemCode === option.groupItemCode && opt.optionItemCode === option.optionItemCode)
+            !(opt.groupCode === option.groupCode && opt.itemCode === option.itemCode)
           )
         );
 
@@ -277,12 +305,16 @@ export class CombosComponent implements OnInit {
 
     try {
       const createRequests: ComboOptionCreateRequest[] = slots.map(slot => ({
-        groupItemCode: slot.groupItemCode,
-        optionItemCode: slot.optionItemCode,
+        groupCode: slot.groupCode,
+        itemCode: slot.itemCode,
         isDefault: slot.isDefault,
-        priceDelta: slot.priceDelta,
-        upgradeLevel: slot.upgradeLevel,
-        upgradeLabel: slot.upgradeLabel || ''
+        priceDiff: slot.priceDiff,
+        upLevel: slot.upLevel,
+        upLabel: slot.upLabel || '',
+        componentLineNum: slot.componentLineNum,
+        lineNum: slot.lineNum,
+        displayOrder: slot.displayOrder,
+        available: slot.available
       }));
 
       console.log('🚀 Creating combo options:', createRequests);
@@ -335,9 +367,9 @@ export class CombosComponent implements OnInit {
 
     this.comboApiService.getComboOptions(selectedCombo.itemCode).subscribe({
       next: (comboData) => {
-        if (comboData && comboData.comboOptions) {
-          this.comboOptions.set(comboData.comboOptions);
-          console.log('🔄 Combo options reloaded:', comboData.comboOptions.length);
+        if (comboData && comboData.options) {
+          this.comboOptions.set(comboData.options);
+          console.log('🔄 Combo options reloaded:', comboData.options.length);
         }
       },
       error: (error) => {
@@ -351,10 +383,10 @@ export class CombosComponent implements OnInit {
   getProductOptionsForSlot(slotIndex: number): { label: string; value: string }[] {
     const usedProducts = this.comboOptionSlots()
       .filter((_, index) => index !== slotIndex)
-      .map(slot => slot.optionItemCode)
+      .map(slot => slot.itemCode)
       .filter(code => code);
 
-    const existingOptions = this.comboOptions().map(option => option.optionItemCode);
+    const existingOptions = this.comboOptions().map(option => option.itemCode);
     const allUsed = [...usedProducts, ...existingOptions];
 
     return this.availableProducts()
@@ -366,13 +398,13 @@ export class CombosComponent implements OnInit {
   }
 
   getGroupOptions(): { label: string; value: string }[] {
-    return [
-      { label: 'DRINKS - Bebidas', value: 'DRINKS' },
-      { label: 'FRIES - Papas', value: 'FRIES' },
-      { label: 'SIDES - Acompañamientos', value: 'SIDES' },
-      { label: 'DESSERTS - Postres', value: 'DESSERTS' },
-      { label: 'SAUCES - Salsas', value: 'SAUCES' }
-    ];
+    return this.productGroups()
+      .filter(group => group.enabled === 'Y') // Solo grupos habilitados
+      .map(group => ({
+        label: `${group.productGroupCode} - ${group.productGroupName}`,
+        value: group.productGroupCode
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label)); // Ordenar alfabéticamente
   }
 
   getProductByCode(itemCode: string): Product | undefined {
@@ -393,9 +425,9 @@ export class CombosComponent implements OnInit {
 
   hasValidSlots(): boolean {
     return this.comboOptionSlots().every(slot =>
-      slot.groupItemCode &&
-      slot.optionItemCode &&
-      slot.upgradeLevel >= 0
+      slot.groupCode &&
+      slot.itemCode &&
+      slot.upLevel >= 0
     );
   }
 
@@ -441,18 +473,18 @@ export class CombosComponent implements OnInit {
   getGroupedOptions(options: ComboOption[]): { name: string; options: ComboOption[] }[] {
     const groupMap = new Map<string, ComboOption[]>();
 
-    // Group options by groupItemCode
+    // Group options by groupCode
     options.forEach(option => {
-      if (!groupMap.has(option.groupItemCode)) {
-        groupMap.set(option.groupItemCode, []);
+      if (!groupMap.has(option.groupCode)) {
+        groupMap.set(option.groupCode, []);
       }
-      groupMap.get(option.groupItemCode)!.push(option);
+      groupMap.get(option.groupCode)!.push(option);
     });
 
     // Convert to array and sort
     return Array.from(groupMap.entries()).map(([groupCode, groupOptions]) => ({
       name: groupCode,
-      options: groupOptions.sort((a, b) => a.upgradeLevel - b.upgradeLevel)
+      options: groupOptions.sort((a, b) => a.upLevel - b.upLevel)
     })).sort((a, b) => a.name.localeCompare(b.name));
   }
 

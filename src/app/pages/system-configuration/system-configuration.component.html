@@ -1,0 +1,801 @@
+<!-- Encabezado descriptivo -->
+<div class="mb-4">
+    <div class="flex items-start gap-3 mb-3">
+        <div class="flex items-center justify-center w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-lg">
+            <i class="pi pi-tablet text-4xl text-primary"></i>
+        </div>
+        <div class="flex-1">
+            <h2 class="text-2xl font-bold mb-2">Sincronización de Dispositivos de Autoservicio</h2>
+            <p class="text-muted-color">
+                Configura cómo y cuándo los dispositivos de autoservicio sincronizan sus datos con el servidor central.
+                Puedes crear configuraciones globales que aplican a todos los dispositivos o configuraciones específicas para dispositivos individuales.
+            </p>
+        </div>
+    </div>
+
+    <!-- Guía contextual -->
+    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded">
+        <div class="flex items-start gap-2">
+            <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 text-xl mt-0.5"></i>
+            <div class="text-sm">
+                <strong class="text-blue-900 dark:text-blue-100">¿Qué tipo de configuración necesito?</strong>
+                <ul class="mt-2 ml-4 list-disc text-muted-color space-y-1">
+                    <li><strong>Configuración Global:</strong> Aplica a todos los dispositivos que no tengan una configuración específica. Ideal para configuraciones estándar.</li>
+                    <li><strong>Configuración Específica:</strong> Aplica solo a un dispositivo en particular (por código POS). Útil cuando un dispositivo necesita configuraciones especiales.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p-toolbar styleClass="mb-4">
+    <ng-template pTemplate="start">
+        <p-button
+            label="Nueva Configuración"
+            icon="pi pi-plus"
+            severity="secondary"
+            class="mr-2"
+            (onClick)="openNew()"
+            pTooltip="Crear nueva configuración de sincronización" />
+        <p-button
+            severity="danger"
+            label="Eliminar Seleccionadas"
+            icon="pi pi-trash"
+            outlined
+            [disabled]="!selectedConfigurations() || !selectedConfigurations()!.length"
+            (onClick)="deleteSelectedConfigurations()" />
+    </ng-template>
+
+    <ng-template pTemplate="end">
+        <p-button label="Limpiar Filtros" icon="pi pi-filter-slash" outlined severity="secondary" (onClick)="clearFilters()" class="mr-2" />
+        <p-button label="Recargar" icon="pi pi-refresh" severity="secondary" (onClick)="loadConfigurations()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="filteredConfigurations()"
+    [rows]="10"
+    [paginator]="true"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedConfigurations"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} configuraciones"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-list text-xl text-primary"></i>
+                    <h5 class="m-0">Listado de Configuraciones</h5>
+                </div>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar por nombre, POS o descripción..." />
+                </p-iconfield>
+            </div>
+
+            <!-- Filtros -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Tipo</label>
+                    <p-select
+                        [options]="configTypeOptions"
+                        [(ngModel)]="filters().configType"
+                        (onChange)="onTypeFilter($event)"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Filtrar por tipo"
+                        variant="filled"
+                        appendTo="body"
+                        fluid>
+                    </p-select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Estado</label>
+                    <p-select
+                        [options]="activeOptions"
+                        [(ngModel)]="filters().isActive"
+                        (onChange)="onActiveFilter($event)"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Filtrar por estado"
+                        variant="filled"
+                        appendTo="body"
+                        fluid>
+                    </p-select>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="id" style="min-width: 8rem">
+                ID
+                <p-sortIcon field="id" />
+            </th>
+            <th pSortableColumn="configName" style="min-width: 15rem">
+                Nombre
+                <p-sortIcon field="configName" />
+            </th>
+            <th style="min-width: 10rem">
+                <i class="pi pi-tag mr-2"></i>Tipo
+            </th>
+            <th pSortableColumn="posCode" style="min-width: 12rem">
+                <i class="pi pi-tablet mr-2"></i>Dispositivo
+                <p-sortIcon field="posCode" />
+            </th>
+            <th pSortableColumn="syncIntervalMinutes" style="min-width: 12rem">
+                <i class="pi pi-clock mr-2"></i>Intervalo
+                <p-sortIcon field="syncIntervalMinutes" />
+            </th>
+            <th pSortableColumn="priority" style="min-width: 10rem">
+                <i class="pi pi-star mr-2"></i>Prioridad
+                <p-sortIcon field="priority" />
+            </th>
+            <th style="min-width: 10rem">
+                <i class="pi pi-power-off mr-2"></i>Estado
+            </th>
+            <th style="min-width: 14rem">Acciones</th>
+        </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-config>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="config" />
+            </td>
+            <td style="min-width: 8rem">
+                <span class="font-semibold">{{ config.id }}</span>
+            </td>
+            <td style="min-width: 15rem">
+                <div class="flex flex-col">
+                    <span class="font-semibold">{{ config.configName }}</span>
+                    <small class="text-muted-color" *ngIf="config.description">{{ config.description }}</small>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <p-tag
+                    [value]="getConfigTypeLabel(config.configType)"
+                    [severity]="getConfigTypeSeverity(config.configType)"
+                    [icon]="config.configType === 'GLOBAL' ? 'pi pi-globe' : 'pi pi-tablet'" />
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex flex-col" *ngIf="config.posCode; else globalPos">
+                    <div class="flex items-center gap-2">
+                        <i class="pi pi-tablet text-primary"></i>
+                        <span class="font-semibold">{{ config.posName || config.posCode }}</span>
+                    </div>
+                    <small class="text-muted-color ml-6">Código: {{ config.posCode }}</small>
+                </div>
+                <ng-template #globalPos>
+                    <div class="flex items-center gap-2">
+                        <i class="pi pi-globe text-green-600"></i>
+                        <span class="font-semibold text-green-600 dark:text-green-400">Todos los Dispositivos</span>
+                    </div>
+                </ng-template>
+            </td>
+            <td style="min-width: 12rem">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-clock text-primary"></i>
+                    <span class="font-semibold">{{ config.syncIntervalMinutes }} min</span>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-star-fill" [class.text-warning]="config.priority > 50" [class.text-muted-color]="config.priority <= 50"></i>
+                    <span class="font-semibold">{{ config.priority }}</span>
+                </div>
+            </td>
+            <td style="min-width: 10rem">
+                <p-tag [value]="getActiveLabel(config.isActive)" [severity]="getActiveSeverity(config.isActive)" />
+            </td>
+            <td>
+                <div class="flex gap-1">
+                    <p-button
+                        icon="pi pi-eye"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="info"
+                        size="small"
+                        (click)="viewConfiguration(config)"
+                        pTooltip="Ver detalles" />
+                    <p-button
+                        icon="pi pi-pencil"
+                        [rounded]="true"
+                        [text]="true"
+                        size="small"
+                        (click)="editConfiguration(config)"
+                        pTooltip="Editar" />
+                    <p-button
+                        [icon]="config.isActive ? 'pi pi-ban' : 'pi pi-check'"
+                        [rounded]="true"
+                        [text]="true"
+                        [severity]="config.isActive ? 'warn' : 'success'"
+                        size="small"
+                        (click)="toggleActive(config)"
+                        [pTooltip]="config.isActive ? 'Desactivar' : 'Activar'" />
+                    <p-button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        [rounded]="true"
+                        [text]="true"
+                        size="small"
+                        (click)="deleteConfiguration(config)"
+                        pTooltip="Eliminar" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+
+    <!-- Empty State -->
+    <ng-template #empty>
+        <div class="text-center py-12">
+            <div class="mb-4">
+                <i class="pi pi-cog text-6xl text-muted-color"></i>
+            </div>
+            <h5 class="mb-4">No hay configuraciones registradas</h5>
+            <p class="text-muted-color mb-6">Crea tu primera configuración de sincronización para comenzar</p>
+            <div class="flex justify-center gap-3">
+                <p-button
+                    label="Crear Configuración Global"
+                    icon="pi pi-globe"
+                    severity="success"
+                    (onClick)="openNewGlobal()" />
+                <p-button
+                    label="Crear Configuración Específica"
+                    icon="pi pi-plus"
+                    severity="secondary"
+                    (onClick)="openNew()" />
+            </div>
+        </div>
+    </ng-template>
+</p-table>
+
+<!-- Dialog para ver detalles -->
+<p-dialog [(visible)]="viewDialog" [style]="{ width: '70vw', maxWidth: '900px' }" header="Detalles de Configuración" [modal]="true" (onHide)="hideViewDialog()">
+    <div *ngIf="configuration()">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Información General -->
+            <div class="col-span-2">
+                <h6 class="font-semibold mb-3 text-primary">📋 Información General</h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm text-muted-color">Nombre</label>
+                        <p class="font-medium">{{ currentConfig.configName }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Tipo</label>
+                        <p><p-tag [value]="getConfigTypeLabel(currentConfig.configType)" [severity]="getConfigTypeSeverity(currentConfig.configType)" /></p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">POS</label>
+                        <p class="font-medium">{{ currentConfig.posName || currentConfig.posCode || 'Global (Todos)' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Estado</label>
+                        <p><p-tag [value]="getActiveLabel(currentConfig.isActive)" [severity]="getActiveSeverity(currentConfig.isActive)" /></p>
+                    </div>
+                    <div class="col-span-2" *ngIf="currentConfig.description">
+                        <label class="text-sm text-muted-color">Descripción</label>
+                        <p class="font-medium">{{ currentConfig.description }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <p-divider class="col-span-2" />
+
+            <!-- Work Manager -->
+            <div class="col-span-2">
+                <h6 class="font-semibold mb-3 text-primary">⚙️ Work Manager</h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm text-muted-color">Habilitado</label>
+                        <p><i [class]="currentConfig.workManagerEnabled ? 'pi pi-check-circle text-success' : 'pi pi-times-circle text-danger'"></i> {{ currentConfig.workManagerEnabled ? 'Sí' : 'No' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Intervalo de Sincronización</label>
+                        <p class="font-medium">{{ currentConfig.syncIntervalMinutes }} minutos</p>
+                    </div>
+                </div>
+            </div>
+
+            <p-divider class="col-span-2" />
+
+            <!-- Reintentos -->
+            <div class="col-span-2">
+                <h6 class="font-semibold mb-3 text-primary">🔄 Reintentos</h6>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-sm text-muted-color">Máximo Reintentos</label>
+                        <p class="font-medium">{{ currentConfig.maxRetries }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Delay de Reintentos</label>
+                        <p class="font-medium">{{ currentConfig.retryDelayMinutes }} minutos</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Backoff Exponencial</label>
+                        <p><i [class]="currentConfig.exponentialBackoff ? 'pi pi-check-circle text-success' : 'pi pi-times-circle text-danger'"></i> {{ currentConfig.exponentialBackoff ? 'Sí' : 'No' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <p-divider class="col-span-2" />
+
+            <!-- Conectividad -->
+            <div class="col-span-2">
+                <h6 class="font-semibold mb-3 text-primary">🌐 Conectividad</h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm text-muted-color">Chequeo de Conectividad</label>
+                        <p class="font-medium">{{ currentConfig.connectivityCheckSeconds }} segundos</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Timeout de Ping</label>
+                        <p class="font-medium">{{ currentConfig.serverPingTimeoutSeconds }} segundos</p>
+                    </div>
+                </div>
+            </div>
+
+            <p-divider class="col-span-2" />
+
+            <!-- Batch y Opciones -->
+            <div class="col-span-2">
+                <h6 class="font-semibold mb-3 text-primary">📦 Batch y Opciones</h6>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-sm text-muted-color">Tamaño de Lote</label>
+                        <p class="font-medium">{{ currentConfig.batchSize }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Solo WiFi</label>
+                        <p><i [class]="currentConfig.syncOnWifiOnly ? 'pi pi-check-circle text-success' : 'pi pi-times-circle text-danger'"></i> {{ currentConfig.syncOnWifiOnly ? 'Sí' : 'No' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Prioridad</label>
+                        <p class="font-medium">{{ currentConfig.priority }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <p-divider class="col-span-2" />
+
+            <!-- Metadatos -->
+            <div class="col-span-2">
+                <h6 class="font-semibold mb-3 text-muted-color">📅 Metadatos</h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sm text-muted-color">Creado</label>
+                        <p class="font-medium">{{ formatDate(currentConfig.createdAt) }}</p>
+                        <small class="text-muted-color" *ngIf="currentConfig.createdBy">Por: {{ currentConfig.createdBy }}</small>
+                    </div>
+                    <div>
+                        <label class="text-sm text-muted-color">Última Actualización</label>
+                        <p class="font-medium">{{ formatDate(currentConfig.updatedAt) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Editar" icon="pi pi-pencil" (click)="viewDialog = false; editConfiguration(currentConfig)" />
+        <p-button label="Cerrar" icon="pi pi-times" outlined (click)="hideViewDialog()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para crear/editar -->
+<p-dialog [(visible)]="configDialog" [style]="{ width: '90vw', maxWidth: '1200px', maxHeight: '90vh' }" [header]="isEditMode() ? 'Editar Configuración' : 'Nueva Configuración'" [modal]="true" (onHide)="hideDialog()" [maximizable]="true">
+    <div *ngIf="configuration()">
+        <p-tabview>
+            <!-- Tab: Información General -->
+            <p-tabpanel header="📋 Información General">
+                <div class="p-4 mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 mt-1"></i>
+                        <div class="text-sm">
+                            <strong>Configuración Global vs Específica:</strong>
+                            <ul class="mt-1 ml-4 list-disc text-muted-color">
+                                <li><strong>Global:</strong> Se aplica a todos los POS que no tengan configuración específica (dejar código POS vacío)</li>
+                                <li><strong>Específica:</strong> Se aplica solo al POS indicado y tiene precedencia sobre la configuración global</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                    <div>
+                        <label for="configName" class="block font-bold mb-2">
+                            Nombre de Configuración *
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Identificador descriptivo para esta configuración"></i>
+                        </label>
+                        <input
+                            type="text"
+                            pInputText
+                            id="configName"
+                            [(ngModel)]="currentConfig.configName"
+                            required
+                            maxlength="100"
+                            placeholder="Ej: Config POS Principal"
+                            fluid />
+                        <small class="text-red-500" *ngIf="submitted() && !currentConfig.configName">El nombre es requerido.</small>
+                    </div>
+
+                    <div>
+                        <label for="posCode" class="block font-bold mb-2">
+                            Dispositivo
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Seleccione un dispositivo específico o deje vacío para configuración global que aplique a todos los dispositivos"></i>
+                        </label>
+                        <p-select
+                            id="posCode"
+                            [options]="getDeviceOptions()"
+                            [(ngModel)]="currentConfig.posCode"
+                            optionLabel="label"
+                            optionValue="value"
+                            [filter]="true"
+                            filterPlaceholder="Buscar dispositivo..."
+                            placeholder="Seleccionar dispositivo o dejar vacío para Global"
+                            appendTo="body"
+                            [disabled]="isEditMode()"
+                            [showClear]="true"
+                            fluid>
+                            <ng-template pTemplate="selectedItem" let-option>
+                                <div class="flex items-center gap-2" *ngIf="option">
+                                    <i class="pi pi-tablet text-primary"></i>
+                                    <span>{{ option.label }}</span>
+                                </div>
+                            </ng-template>
+                            <ng-template pTemplate="item" let-option>
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-tablet text-primary"></i>
+                                    <span>{{ option.label }}</span>
+                                </div>
+                            </ng-template>
+                            <ng-template pTemplate="empty">
+                                <div class="p-3 text-center text-muted-color">
+                                    <i class="pi pi-info-circle mr-2"></i>
+                                    No hay dispositivos disponibles
+                                </div>
+                            </ng-template>
+                        </p-select>
+                        <small class="text-muted-color">
+                            <i class="pi pi-exclamation-triangle"></i>
+                            {{ isEditMode() ? 'No se puede cambiar el dispositivo de una configuración existente' : 'Vacío = Configuración Global para todos los dispositivos' }}
+                        </small>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label for="description" class="block font-bold mb-2">Descripción</label>
+                        <textarea
+                            pTextarea
+                            id="description"
+                            [(ngModel)]="currentConfig.description"
+                            rows="3"
+                            maxlength="500"
+                            placeholder="Descripción detallada de esta configuración..."
+                            fluid>
+                        </textarea>
+                    </div>
+
+                    <div>
+                        <label for="priority" class="block font-bold mb-2">
+                            Prioridad (0-100)
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Define el orden de precedencia. Mayor número = mayor prioridad. Útil cuando hay múltiples configuraciones"></i>
+                        </label>
+                        <p-inputnumber
+                            id="priority"
+                            [(ngModel)]="currentConfig.priority"
+                            [min]="0"
+                            [max]="100"
+                            [showButtons]="true"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-star-fill text-warning"></i>
+                            Mayor número = Mayor precedencia en el sistema
+                        </small>
+                    </div>
+
+                    <div class="flex flex-col justify-center gap-2">
+                        <div class="flex items-center gap-2">
+                            <p-checkbox
+                                [(ngModel)]="currentConfig.isActive"
+                                [binary]="true"
+                                inputId="isActive" />
+                            <label for="isActive" class="font-bold">Configuración Activa</label>
+                        </div>
+                        <small class="text-muted-color ml-6">
+                            <i class="pi pi-info-circle"></i>
+                            Solo las configuraciones activas se aplicarán en el sistema
+                        </small>
+                    </div>
+                </div>
+            </p-tabpanel>
+
+            <!-- Tab: Work Manager -->
+            <p-tabpanel header="⚙️ Work Manager">
+                <div class="p-4 mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 mt-1"></i>
+                        <div class="text-sm">
+                            <strong>Work Manager:</strong>
+                            <p class="mt-1 text-muted-color">Gestiona las tareas de sincronización automática en segundo plano. Define cada cuánto tiempo el sistema sincronizará datos con el servidor.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                    <div class="col-span-2">
+                        <div class="flex items-center gap-2">
+                            <p-checkbox
+                                [(ngModel)]="currentConfig.workManagerEnabled"
+                                [binary]="true"
+                                inputId="workManagerEnabled" />
+                            <label for="workManagerEnabled" class="font-bold">
+                                Work Manager Habilitado
+                                <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Activa o desactiva la sincronización automática. Desactivar solo en casos especiales"></i>
+                            </label>
+                        </div>
+                        <small class="text-muted-color ml-6 mt-1 block">
+                            <i class="pi pi-exclamation-triangle text-warning"></i>
+                            Si se desactiva, no habrá sincronización automática de datos
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="syncIntervalMinutes" class="block font-bold mb-2">
+                            Intervalo de Sincronización (minutos) *
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Frecuencia con la que se ejecutará la sincronización. Mínimo 15 min requerido por Android"></i>
+                        </label>
+                        <p-inputnumber
+                            id="syncIntervalMinutes"
+                            [(ngModel)]="currentConfig.syncIntervalMinutes"
+                            [min]="15"
+                            [max]="1440"
+                            [showButtons]="true"
+                            [disabled]="!currentConfig.workManagerEnabled"
+                            suffix=" min"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-info-circle"></i>
+                            Mínimo: 15 min (limitación de Android). Máximo: 1440 min (1 día). Recomendado: 15-30 min
+                        </small>
+                    </div>
+                </div>
+            </p-tabpanel>
+
+            <!-- Tab: Reintentos -->
+            <p-tabpanel header="🔄 Reintentos">
+                <div class="p-4 mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 mt-1"></i>
+                        <div class="text-sm">
+                            <strong>Gestión de Reintentos:</strong>
+                            <p class="mt-1 text-muted-color">Cuando una sincronización falla, el sistema puede reintentar automáticamente. Configure cuántos reintentos realizar y el tiempo de espera entre cada intento.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+                    <div>
+                        <label for="maxRetries" class="block font-bold mb-2">
+                            Máximo Reintentos
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Número de veces que se intentará de nuevo una sincronización fallida antes de marcarla como error permanente"></i>
+                        </label>
+                        <p-inputnumber
+                            id="maxRetries"
+                            [(ngModel)]="currentConfig.maxRetries"
+                            [min]="0"
+                            [max]="10"
+                            [showButtons]="true"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-replay"></i>
+                            Rango: 0-10. Recomendado: 3
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="retryDelayMinutes" class="block font-bold mb-2">
+                            Delay de Reintentos (min)
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Tiempo de espera entre cada reintento. Permite que el servidor se recupere antes del siguiente intento"></i>
+                        </label>
+                        <p-inputnumber
+                            id="retryDelayMinutes"
+                            [(ngModel)]="currentConfig.retryDelayMinutes"
+                            [min]="1"
+                            [max]="60"
+                            [showButtons]="true"
+                            suffix=" min"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-clock"></i>
+                            Rango: 1-60 min. Recomendado: 5
+                        </small>
+                    </div>
+
+                    <div class="flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-2">
+                            <p-checkbox
+                                [(ngModel)]="currentConfig.exponentialBackoff"
+                                [binary]="true"
+                                inputId="exponentialBackoff" />
+                            <label for="exponentialBackoff" class="font-bold">
+                                Backoff Exponencial
+                                <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Aumenta progresivamente el tiempo de espera entre reintentos (ej: 5min, 10min, 20min). Reduce carga al servidor"></i>
+                            </label>
+                        </div>
+                        <small class="text-muted-color ml-6">
+                            <i class="pi pi-chart-line"></i>
+                            Incrementa el delay en cada reintento
+                        </small>
+                    </div>
+                </div>
+            </p-tabpanel>
+
+            <!-- Tab: Conectividad -->
+            <p-tabpanel header="🌐 Conectividad">
+                <div class="p-4 mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 mt-1"></i>
+                        <div class="text-sm">
+                            <strong>Monitoreo de Conectividad:</strong>
+                            <p class="mt-1 text-muted-color">El sistema verifica periódicamente la conexión al servidor antes de intentar sincronizar datos. Esto evita intentos fallidos cuando no hay conectividad.</p>
+                            <ul class="mt-2 ml-4 list-disc text-muted-color">
+                                <li><strong>Chequeo de Conectividad:</strong> Con qué frecuencia se verifica si hay conexión disponible</li>
+                                <li><strong>Timeout de Ping:</strong> Cuánto tiempo esperar la respuesta del servidor antes de considerar que no hay conexión</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                    <div>
+                        <label for="connectivityCheckSeconds" class="block font-bold mb-2">
+                            Chequeo de Conectividad (seg)
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Frecuencia con la que se verifica si hay conexión disponible al servidor. Valores bajos = chequeos más frecuentes"></i>
+                        </label>
+                        <p-inputnumber
+                            id="connectivityCheckSeconds"
+                            [(ngModel)]="currentConfig.connectivityCheckSeconds"
+                            [min]="10"
+                            [max]="3600"
+                            [showButtons]="true"
+                            suffix=" seg"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-wifi"></i>
+                            Rango: 10-3600 seg (1 hora). Recomendado: 120 seg (2 min)
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="serverPingTimeoutSeconds" class="block font-bold mb-2">
+                            Timeout de Ping (seg)
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Tiempo máximo de espera para la respuesta del servidor. Si no responde en este tiempo, se considera sin conexión"></i>
+                        </label>
+                        <p-inputnumber
+                            id="serverPingTimeoutSeconds"
+                            [(ngModel)]="currentConfig.serverPingTimeoutSeconds"
+                            [min]="1"
+                            [max]="60"
+                            [showButtons]="true"
+                            suffix=" seg"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-stopwatch"></i>
+                            Rango: 1-60 seg. Recomendado: 10 seg
+                        </small>
+                    </div>
+                </div>
+            </p-tabpanel>
+
+            <!-- Tab: Batch y Opciones -->
+            <p-tabpanel header="📦 Batch">
+                <div class="p-4 mb-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 mt-1"></i>
+                        <div class="text-sm">
+                            <strong>Procesamiento por Lotes:</strong>
+                            <p class="mt-1 text-muted-color">Los datos se sincronizan en grupos pequeños (lotes) para evitar sobrecargar el servidor y mejorar el rendimiento.</p>
+                            <ul class="mt-2 ml-4 list-disc text-muted-color">
+                                <li><strong>Tamaño de Lote:</strong> Cuántos registros se envían juntos en cada operación. Valores pequeños = más operaciones pero menor carga por operación</li>
+                                <li><strong>Solo WiFi:</strong> Útil para dispositivos móviles - evita consumir datos móviles sincronizando solo cuando hay WiFi disponible</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                    <div>
+                        <label for="batchSize" class="block font-bold mb-2">
+                            Tamaño de Lote
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Cantidad de registros que se procesan juntos en cada operación de sincronización. Valores mayores = menos operaciones pero más carga por operación"></i>
+                        </label>
+                        <p-inputnumber
+                            id="batchSize"
+                            [(ngModel)]="currentConfig.batchSize"
+                            [min]="1"
+                            [max]="100"
+                            [showButtons]="true"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-box"></i>
+                            Rango: 1-100 registros. Recomendado: 10-20
+                        </small>
+                    </div>
+
+                    <div class="flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-2">
+                            <p-checkbox
+                                [(ngModel)]="currentConfig.syncOnWifiOnly"
+                                [binary]="true"
+                                inputId="syncOnWifiOnly" />
+                            <label for="syncOnWifiOnly" class="font-bold">
+                                Sincronizar Solo en WiFi
+                                <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Si se activa, la sincronización solo ocurrirá cuando el dispositivo esté conectado a una red WiFi, evitando consumo de datos móviles"></i>
+                            </label>
+                        </div>
+                        <small class="text-muted-color ml-6">
+                            <i class="pi pi-mobile"></i>
+                            Recomendado para dispositivos móviles con plan de datos limitado
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="priority" class="block font-bold mb-2">
+                            Prioridad
+                            <i class="pi pi-question-circle text-muted-color ml-1" pTooltip="Define el orden de procesamiento cuando hay múltiples configuraciones. Mayor número = mayor prioridad"></i>
+                        </label>
+                        <p-inputnumber
+                            id="priority"
+                            [(ngModel)]="currentConfig.priority"
+                            [min]="0"
+                            [max]="100"
+                            [showButtons]="true"
+                            fluid />
+                        <small class="text-muted-color">
+                            <i class="pi pi-sort-numeric-up"></i>
+                            Rango: 0-100. Mayor número = mayor prioridad
+                        </small>
+                    </div>
+
+                    <div class="flex items-center justify-center">
+                        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 rounded w-full">
+                            <div class="flex items-start gap-2">
+                                <i class="pi pi-exclamation-triangle text-amber-600 dark:text-amber-400 mt-1"></i>
+                                <div class="text-sm text-muted-color">
+                                    <strong>Nota:</strong> La configuración con mayor prioridad se ejecutará primero cuando hay múltiples POS sincronizando simultáneamente.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </p-tabpanel>
+        </p-tabview>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <p-button
+            label="Cancelar"
+            icon="pi pi-times"
+            outlined
+            (click)="hideDialog()" />
+        <p-button
+            label="Guardar"
+            icon="pi pi-check"
+            [loading]="loading()"
+            (click)="saveConfiguration()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" acceptLabel="Sí" rejectLabel="No" acceptButtonStyleClass="p-button-danger" rejectButtonStyleClass="p-button-secondary" />
+<p-toast />

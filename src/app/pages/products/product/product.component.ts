@@ -35,6 +35,7 @@ import { Product, ProductCreateRequest, ProductUpdateRequest } from './model/pro
 import { ProductGroup } from '../product-group/model/product-group.model';
 import { ProductCategory } from '../category/model/product-category.model'; 
 import { ImageSelectorComponent } from '../../../layout/component/app-image-selector.component';
+import { ComboOptionResponseDto, ComboOptionItemDto } from '../combos/model/combo.model'; // Importar modelos de combo
 
 // Interfaz para compatibilidad con el template
 interface ProductItem extends Product {}
@@ -95,6 +96,13 @@ export class ProductComponent implements OnInit {
     { label: 'No', value: 'N' }
   ];
 
+  // Opciones para el tipo de producto
+  productTypeOptions = signal<{ label: string; value: string }[]>([
+    { label: 'Simple', value: 'S' },
+    { label: 'Variable', value: 'V' },
+    { label: 'Combo', value: 'C' }
+  ]);
+
   // Filtros
   selectedCategory = signal<string | null>(null);
   selectedGroup = signal<string | null>(null);
@@ -105,6 +113,11 @@ export class ProductComponent implements OnInit {
   
   // Ingredientes disponibles
   availableIngredients = signal<number>(0);
+
+  // Nuevo: Variables para manejo de opciones de combo
+  comboOptionDialog = signal(false);
+  currentComboOption = signal<ComboOptionItemDto | null>(null);
+  currentComboOptionIndex = signal<number | null>(null);
 
   constructor(
     private confirmationService: ConfirmationService,
@@ -180,6 +193,10 @@ export class ProductComponent implements OnInit {
     this.product.set({
       ...defaultProduct,
       itemCode: this.generateProductCode(),
+      isCombo: 'N',
+      u_HasVariants: 'N',
+      u_IsVariant: 'N',
+      u_ParentItem: undefined,
       material: [],
       accompaniment: []
     });
@@ -188,7 +205,21 @@ export class ProductComponent implements OnInit {
   }
 
   editProduct(product: ProductItem) {
-    this.product.set({ ...product });
+    // Asegurar que u_ProductType esté correcto basado en los flags
+    const editProduct = { ...product };
+
+    // Si no tiene u_ProductType definido, calcularlo
+    if (!editProduct.u_ProductType) {
+      if (editProduct.isCombo === 'Y') {
+        editProduct.u_ProductType = 'C';
+      } else if (editProduct.u_HasVariants === 'Y') {
+        editProduct.u_ProductType = 'V';
+      } else {
+        editProduct.u_ProductType = 'S';
+      }
+    }
+
+    this.product.set(editProduct);
     this.productDialog = true;
   }
 
@@ -299,6 +330,15 @@ export class ProductComponent implements OnInit {
       return;
     }
 
+    // Asignar u_ProductType basado en las opciones seleccionadas
+    if (currentProduct.isCombo === 'Y') {
+      currentProduct.u_ProductType = 'C'; // Combo
+    } else if (currentProduct.u_HasVariants === 'Y') {
+      currentProduct.u_ProductType = 'V'; // Variable
+    } else {
+      currentProduct.u_ProductType = 'S'; // Simple
+    }
+
     // Validar datos usando el repository
     const validation = this.productRepository.validateProductData(currentProduct);
     if (!validation.isValid) {
@@ -315,9 +355,7 @@ export class ProductComponent implements OnInit {
 
     // Preparar datos del producto
     const productData = {
-      ...currentProduct,
-      material: currentProduct.material || [],
-      accompaniment: currentProduct.accompaniment || []
+      ...currentProduct
     };
 
     //recupeamos la ulr de la imagen
@@ -707,5 +745,193 @@ export class ProductComponent implements OnInit {
 
   hasAvailableIngredients(): boolean {
     return this.availableIngredients() > 0;
+  }
+
+  // ============================================
+  // MÉTODOS PARA GESTIÓN DE OPCIONES DE COMBO
+  // ============================================
+
+  addComboOption() {
+    const currentProduct = this.product();
+    if (!currentProduct || currentProduct.isCombo !== 'Y') {
+      return;
+    }
+
+    // Inicializar comboOptions si no existe
+    if (!currentProduct.options) {
+      currentProduct.options = [];
+    }
+
+    // Crear una nueva opción con valores por defecto
+    const newOption: ComboOptionItemDto = {
+      componentLineNum: currentProduct.options.length + 1,
+      groupCode: '',
+      itemCode: '',
+      isDefault: 'N',
+      priceDiff: 0,
+      upLevel: 0,
+      available: 'Y',
+      lineNum: currentProduct.options.length + 1,
+      displayOrder: currentProduct.options.length + 1
+    };
+
+    // Actualizar el producto con la nueva opción
+    this.product.set({
+      ...currentProduct,
+      options: [...currentProduct.options, newOption]
+    });
+  }
+
+  editComboOption(option: ComboOptionItemDto, index: number) {
+    this.currentComboOption.set({ ...option });
+    this.currentComboOptionIndex.set(index);
+    this.comboOptionDialog.set(true);
+  }
+
+  removeComboOption(index: number) {
+    const currentProduct = this.product();
+    if (!currentProduct || !currentProduct.options || index < 0) {
+      return;
+    }
+
+    const updatedOptions = [...currentProduct.options];
+    updatedOptions.splice(index, 1);
+
+    this.product.set({
+      ...currentProduct,
+      options: updatedOptions
+    });
+
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Exitoso',
+      detail: 'Opción eliminada',
+      life: 3000
+    });
+  }
+
+  saveComboOption() {
+    const option = this.currentComboOption();
+    const index = this.currentComboOptionIndex();
+    const currentProduct = this.product();
+
+    if (!option || index === null || !currentProduct || !currentProduct.options) {
+      return;
+    }
+
+    // Actualizar la opción en la posición específica
+    const updatedOptions = [...currentProduct.options];
+    updatedOptions[index] = { ...option };
+
+    this.product.set({
+      ...currentProduct,
+      options: updatedOptions
+    });
+
+    this.hideComboOptionDialog();
+
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Exitoso',
+      detail: 'Opción actualizada',
+      life: 3000
+    });
+  }
+
+  hideComboOptionDialog() {
+    this.comboOptionDialog.set(false);
+    this.currentComboOption.set(null);
+    this.currentComboOptionIndex.set(null);
+  }
+
+  getGroupOptions(): { label: string; value: string }[] {
+    // Esta es una lista de ejemplo, en la práctica podría venir de un servicio
+    return [
+      { label: 'Bebidas', value: 'BEBIDAS' },
+      { label: 'Acompañamientos', value: 'ACOMP' },
+      { label: 'Salsas', value: 'SALSAS' },
+      { label: 'Postres', value: 'POSTRES' },
+      { label: 'Extras', value: 'EXTRAS' }
+    ];
+  }
+
+  getAvailableProductsForOptions(): ProductItem[] {
+    // Retorna todos los productos que no son combos y están disponibles para venta
+    return this.products().filter(product =>
+      product.isCombo !== 'Y' &&
+      product.sellItem === 'Y' &&
+      product.available === 'Y' &&
+      product.enabled === 'Y'
+    );
+  }
+
+  // === MÉTODOS PARA TIPO DE PRODUCTO (MUTUAMENTE EXCLUYENTES) ===
+
+  /**
+   * Maneja el cambio del checkbox "Es Combo"
+   * Si se marca Combo, desmarca automáticamente "Tiene Variantes"
+   */
+  onComboChange(): void {
+    const currentProduct = this.product();
+    if (!currentProduct) return;
+
+    // Si se marca como Combo, desmarcar variantes
+    if (currentProduct.isCombo === 'Y') {
+      currentProduct.u_HasVariants = 'N';
+    }
+
+    this.product.set({ ...currentProduct });
+  }
+
+  /**
+   * Maneja el cambio del checkbox "Tiene Variantes"
+   * Si se marca Tiene Variantes, desmarca automáticamente "Es Combo"
+   */
+  onHasVariantsChange(): void {
+    const currentProduct = this.product();
+    if (!currentProduct) return;
+
+    // Si se marca con variantes, desmarcar combo
+    if (currentProduct.u_HasVariants === 'Y') {
+      currentProduct.isCombo = 'N';
+    }
+
+    this.product.set({ ...currentProduct });
+  }
+
+  /**
+   * Retorna el label para mostrar según el tipo de producto
+   */
+  getProductTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'S': 'Simple',
+      'V': 'Variable',
+      'C': 'Combo'
+    };
+    return labels[type] || 'Simple';
+  }
+
+  /**
+   * Retorna la severidad para el tag según el tipo de producto
+   */
+  getProductTypeSeverity(type: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+      'S': 'secondary',
+      'V': 'info',
+      'C': 'warn'
+    };
+    return severities[type] || 'secondary';
+  }
+
+  /**
+   * Retorna el icono para el tipo de producto
+   */
+  getProductTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'S': 'pi pi-circle',
+      'V': 'pi pi-clone',
+      'C': 'pi pi-th-large'
+    };
+    return icons[type] || 'pi pi-circle';
   }
 }

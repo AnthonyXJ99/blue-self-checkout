@@ -1,0 +1,1677 @@
+{
+  "api_documentation": {
+    "title": "API Blue Self Checkout - Guía de Uso para Web",
+    "version": "1.0.0",
+    "base_url": "https://api.example.com",
+    "description": "Documentación completa para la integración web del sistema de productos y combos",
+
+    "authentication": {
+      "note": "Agregar información de autenticación según configuración del proyecto"
+    },
+
+    "products": {
+      "description": "Endpoints para gestionar productos simples (no combos)",
+      "base_endpoint": "/api/Products",
+
+      "operations": {
+        "1_get_all_products": {
+          "method": "GET",
+          "endpoint": "/api/Products/all",
+          "description": "Obtiene todos los productos sin paginación",
+          "response_example": {
+            "status": 200,
+            "body": [
+              {
+                "itemCode": "PROD001",
+                "eanCode": "1234567890123",
+                "itemName": "Hamburguesa Clásica",
+                "frgnName": "Classic Burger",
+                "price": 45.00,
+                "discount": 10,
+                "imageUrl": "https://api.example.com/images/hamburguesa.jpg",
+                "description": "Deliciosa hamburguesa con queso",
+                "frgnDescription": "Delicious cheeseburger",
+                "sellItem": "Y",
+                "available": "Y",
+                "enabled": "Y",
+                "groupItemCode": "GRP001",
+                "categoryItemCode": "CAT001",
+                "waitingTime": "15 min",
+                "rating": 4.5,
+                "isCombo": "N",
+                "material": []
+              }
+            ]
+          }
+        },
+
+        "2_get_products_paginated": {
+          "method": "GET",
+          "endpoint": "/api/Products?pageNumber=1&pageSize=10&search=hamburguesa",
+          "description": "Obtiene productos con paginación y búsqueda",
+          "query_parameters": {
+            "pageNumber": {
+              "type": "integer",
+              "default": 1,
+              "description": "Número de página (mínimo 1)"
+            },
+            "pageSize": {
+              "type": "integer",
+              "default": 10,
+              "description": "Cantidad de elementos por página (1-100)"
+            },
+            "search": {
+              "type": "string",
+              "required": false,
+              "description": "Término de búsqueda (busca en ItemName, EANCode, ItemCode, FrgnName)"
+            }
+          },
+          "response_example": {
+            "status": 200,
+            "body": {
+              "data": [],
+              "page": 1,
+              "pageSize": 10,
+              "totalRecords": 50,
+              "totalPages": 5,
+              "hasNextPage": true,
+              "hasPreviousPage": false,
+              "filter": "hamburguesa"
+            }
+          }
+        },
+
+        "3_get_product_by_code": {
+          "method": "GET",
+          "endpoint": "/api/Products/{productCode}",
+          "description": "Obtiene un producto específico por su código",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código único del producto"
+            }
+          },
+          "example_request": "/api/Products/PROD001",
+          "response_example": {
+            "status": 200,
+            "body": {
+              "itemCode": "PROD001",
+              "itemName": "Hamburguesa Clásica",
+              "price": 45.00
+            }
+          }
+        },
+
+        "4_get_available_products": {
+          "method": "GET",
+          "endpoint": "/api/Products/available",
+          "description": "Obtiene solo productos disponibles para venta (Available='Y', Enabled='Y', SellItem='Y')",
+          "use_case": "Ideal para mostrar catálogo en la web/app móvil"
+        },
+
+        "5_get_products_by_category": {
+          "method": "GET",
+          "endpoint": "/api/Products/Categories/{categoryCode}",
+          "description": "Obtiene productos de una categoría específica",
+          "example_request": "/api/Products/Categories/CAT001"
+        },
+
+        "6_get_products_by_group": {
+          "method": "GET",
+          "endpoint": "/api/Products/Groups/{groupCode}",
+          "description": "Obtiene productos de un grupo específico",
+          "example_request": "/api/Products/Groups/GRP001"
+        },
+
+        "7_create_product": {
+          "method": "POST",
+          "endpoint": "/api/Products",
+          "description": "Crea un nuevo producto simple (NO usar para combos)",
+          "content_type": "application/json",
+          "request_body": {
+            "itemCode": {
+              "type": "string",
+              "required": true,
+              "max_length": 50,
+              "description": "Código único del producto"
+            },
+            "eanCode": {
+              "type": "string",
+              "required": true,
+              "max_length": 50,
+              "description": "Código de barras EAN"
+            },
+            "itemName": {
+              "type": "string",
+              "required": true,
+              "max_length": 150,
+              "description": "Nombre del producto"
+            },
+            "frgnName": {
+              "type": "string",
+              "required": false,
+              "max_length": 150,
+              "description": "Nombre en idioma extranjero (ej: inglés)"
+            },
+            "price": {
+              "type": "decimal",
+              "required": true,
+              "min": 0,
+              "description": "Precio del producto"
+            },
+            "discount": {
+              "type": "decimal",
+              "required": false,
+              "min": 0,
+              "max": 100,
+              "description": "Descuento en porcentaje (0-100)"
+            },
+            "imageUrl": {
+              "type": "string",
+              "required": false,
+              "max_length": 255,
+              "description": "URL de la imagen del producto"
+            },
+            "description": {
+              "type": "string",
+              "required": false,
+              "max_length": 255,
+              "description": "Descripción del producto"
+            },
+            "frgnDescription": {
+              "type": "string",
+              "required": false,
+              "max_length": 255,
+              "description": "Descripción en idioma extranjero"
+            },
+            "sellItem": {
+              "type": "string",
+              "required": true,
+              "enum": ["Y", "N"],
+              "default": "Y",
+              "description": "Indica si está disponible para venta"
+            },
+            "available": {
+              "type": "string",
+              "required": true,
+              "enum": ["Y", "N"],
+              "default": "Y",
+              "description": "Indica si está disponible"
+            },
+            "enabled": {
+              "type": "string",
+              "required": true,
+              "enum": ["Y", "N"],
+              "default": "Y",
+              "description": "Indica si está habilitado"
+            },
+            "groupItemCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código del grupo al que pertenece"
+            },
+            "categoryItemCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código de la categoría"
+            },
+            "waitingTime": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Tiempo de preparación estimado"
+            },
+            "rating": {
+              "type": "decimal",
+              "required": false,
+              "min": 0,
+              "max": 5,
+              "description": "Calificación promedio (0-5)"
+            },
+            "u_ProductType": {
+              "type": "string",
+              "required": false,
+              "enum": ["S", "V", "C"],
+              "default": "S",
+              "description": "Tipo de producto: S=Simple, V=Variable (con variantes), C=Combo"
+            },
+            "u_HasVariants": {
+              "type": "string",
+              "required": false,
+              "enum": ["Y", "N"],
+              "default": "N",
+              "description": "Indica si tiene variantes (solo si U_ProductType='V')"
+            },
+            "u_IsVariant": {
+              "type": "string",
+              "required": false,
+              "enum": ["Y", "N"],
+              "default": "N",
+              "description": "Indica si es variante de otro producto"
+            },
+            "u_ParentItem": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código del producto padre (solo si U_IsVariant='Y')"
+            }
+          },
+          "example_request": {
+            "itemCode": "BURGER001",
+            "eanCode": "7501234567890",
+            "itemName": "Hamburguesa Doble Queso",
+            "frgnName": "Double Cheese Burger",
+            "price": 85.50,
+            "discount": 10,
+            "imageUrl": "/images/burger-doble.jpg",
+            "description": "Hamburguesa con doble carne y queso cheddar",
+            "frgnDescription": "Burger with double meat and cheddar cheese",
+            "sellItem": "Y",
+            "available": "Y",
+            "enabled": "Y",
+            "groupItemCode": "BURGERS",
+            "categoryItemCode": "FOOD",
+            "waitingTime": "15-20 min",
+            "rating": 4.7,
+            "u_ProductType": "S",
+            "u_HasVariants": "N",
+            "u_IsVariant": "N",
+            "u_ParentItem": null
+          },
+          "response_example": {
+            "status": 201,
+            "headers": {
+              "Location": "/api/Products/BURGER001"
+            },
+            "body": {
+              "itemCode": "BURGER001",
+              "itemName": "Hamburguesa Doble Queso",
+              "price": 85.50,
+              "imageUrl": "https://api.example.com/images/burger-doble.jpg"
+            }
+          },
+          "error_responses": {
+            "400": {
+              "description": "Datos inválidos",
+              "example": {
+                "message": "Validation failed",
+                "errors": {
+                  "ItemName": ["El nombre del artículo es requerido."],
+                  "Price": ["El precio debe ser un valor positivo."]
+                }
+              }
+            },
+            "409": {
+              "description": "El código ya existe",
+              "example": {
+                "message": "Ya existe un producto con el ItemCode: BURGER001."
+              }
+            }
+          }
+        },
+
+        "8_update_product": {
+          "method": "PUT",
+          "endpoint": "/api/Products/{productCode}",
+          "description": "Actualiza un producto existente",
+          "path_parameters": {
+            "productCode": "BURGER001"
+          },
+          "example_request": {
+            "itemCode": "BURGER001",
+            "eanCode": "7501234567890",
+            "itemName": "Hamburguesa Doble Queso Premium",
+            "frgnName": "Premium Double Cheese Burger",
+            "price": 95.00,
+            "discount": 15,
+            "imageUrl": "/images/burger-doble-premium.jpg",
+            "description": "Hamburguesa premium con doble carne angus",
+            "sellItem": "Y",
+            "available": "Y",
+            "enabled": "Y",
+            "groupItemCode": "BURGERS",
+            "categoryItemCode": "FOOD",
+            "waitingTime": "20-25 min",
+            "rating": 4.9,
+            "u_ProductType": "S"
+          },
+          "response_example": {
+            "status": 200,
+            "body": {
+              "itemCode": "BURGER001",
+              "itemName": "Hamburguesa Doble Queso Premium",
+              "price": 95.00
+            }
+          }
+        },
+
+        "9_delete_product": {
+          "method": "DELETE",
+          "endpoint": "/api/Products/{productCode}",
+          "description": "Elimina un producto",
+          "example_request": "/api/Products/BURGER001",
+          "response_example": {
+            "status": 204,
+            "body": null
+          }
+        }
+      }
+    },
+
+    "variants": {
+      "description": "Endpoints para gestionar variantes de productos (tamaños, colores, marcas)",
+      "base_endpoint": "/api/Products/{productCode}/Variants",
+      "important_notes": [
+        "Las variantes permiten crear diferentes presentaciones del mismo producto base",
+        "El producto base debe tener U_HasVariants='Y'",
+        "Cada variante tiene un PriceAdjustment respecto al precio base",
+        "Las variantes se pueden usar en ventas individuales y en opciones de combos",
+        "SizeCode debe existir en la tabla OSZC, ColorCode en la tabla Colors"
+      ],
+
+      "workflow": {
+        "description": "Flujo recomendado para trabajar con variantes",
+        "steps": [
+          "1. Crear producto base en OITM con U_HasVariants='Y'",
+          "2. Obtener lista de tamaños/colores de tablas maestras (OSZC, Colors)",
+          "3. Crear variantes usando POST /Variants o POST /Variants/bulk",
+          "4. Las variantes quedan disponibles para venta individual o uso en combos"
+        ]
+      },
+
+      "operations": {
+        "1_get_all_variants": {
+          "method": "GET",
+          "endpoint": "/api/Products/{productCode}/Variants",
+          "description": "Obtiene todas las variantes de un producto",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código del producto base"
+            }
+          },
+          "example_request": "/api/Products/GASEOSA/Variants",
+          "response_example": {
+            "status": 200,
+            "body": [
+              {
+                "variantID": 1,
+                "itemCode": "GASEOSA",
+                "variantName": "Coca Cola 500ml",
+                "brandName": "Coca Cola",
+                "sizeCode": "500ML",
+                "colorCode": null,
+                "priceAdjustment": 5.00,
+                "available": "Y",
+                "sizeName": "500 Mililitros",
+                "colorName": null,
+                "basePrice": 25.00,
+                "finalPrice": 30.00
+              },
+              {
+                "variantID": 2,
+                "itemCode": "GASEOSA",
+                "variantName": "Pepsi 750ml",
+                "brandName": "Pepsi",
+                "sizeCode": "750ML",
+                "colorCode": null,
+                "priceAdjustment": 8.00,
+                "available": "Y",
+                "sizeName": "750 Mililitros",
+                "colorName": null,
+                "basePrice": 25.00,
+                "finalPrice": 33.00
+              }
+            ]
+          },
+          "calculated_fields": {
+            "finalPrice": "basePrice + priceAdjustment",
+            "sizeName": "Obtenido desde tabla OSZC",
+            "colorName": "Obtenido desde tabla Colors"
+          }
+        },
+
+        "2_get_variant_by_id": {
+          "method": "GET",
+          "endpoint": "/api/Products/{productCode}/Variants/{variantId}",
+          "description": "Obtiene una variante específica",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código del producto base"
+            },
+            "variantId": {
+              "type": "integer",
+              "description": "ID de la variante"
+            }
+          },
+          "example_request": "/api/Products/GASEOSA/Variants/1",
+          "response_example": {
+            "status": 200,
+            "body": {
+              "variantID": 1,
+              "itemCode": "GASEOSA",
+              "variantName": "Coca Cola 500ml",
+              "brandName": "Coca Cola",
+              "sizeCode": "500ML",
+              "colorCode": null,
+              "priceAdjustment": 5.00,
+              "available": "Y",
+              "sizeName": "500 Mililitros",
+              "colorName": null,
+              "basePrice": 25.00,
+              "finalPrice": 30.00
+            }
+          }
+        },
+
+        "3_create_variant": {
+          "method": "POST",
+          "endpoint": "/api/Products/{productCode}/Variants",
+          "description": "Crea una nueva variante para un producto",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código del producto base"
+            }
+          },
+          "request_body": {
+            "variantName": {
+              "type": "string",
+              "required": true,
+              "max_length": 150,
+              "description": "Nombre de la variante",
+              "example": "Coca Cola 500ml"
+            },
+            "brandName": {
+              "type": "string",
+              "required": false,
+              "max_length": 100,
+              "description": "Nombre de la marca",
+              "example": "Coca Cola"
+            },
+            "sizeCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código del tamaño (debe existir en OSZC)",
+              "example": "500ML"
+            },
+            "colorCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código del color (debe existir en Colors)",
+              "example": null
+            },
+            "priceAdjustment": {
+              "type": "decimal",
+              "required": false,
+              "default": 0,
+              "min": -999999.99,
+              "max": 999999.99,
+              "description": "Ajuste de precio respecto al precio base",
+              "example": 5.00
+            },
+            "available": {
+              "type": "string",
+              "required": false,
+              "enum": ["Y", "N"],
+              "default": "Y",
+              "description": "Disponibilidad de la variante"
+            }
+          },
+          "example_request": {
+            "endpoint": "/api/Products/GASEOSA/Variants",
+            "body": {
+              "variantName": "Coca Cola 500ml",
+              "brandName": "Coca Cola",
+              "sizeCode": "500ML",
+              "colorCode": null,
+              "priceAdjustment": 5.00,
+              "available": "Y"
+            }
+          },
+          "response_example": {
+            "status": 201,
+            "body": {
+              "variantID": 1,
+              "itemCode": "GASEOSA",
+              "variantName": "Coca Cola 500ml",
+              "brandName": "Coca Cola",
+              "sizeCode": "500ML",
+              "colorCode": null,
+              "priceAdjustment": 5.00,
+              "available": "Y",
+              "sizeName": "500 Mililitros",
+              "colorName": null,
+              "basePrice": 25.00,
+              "finalPrice": 30.00
+            }
+          },
+          "validations": [
+            "El producto debe existir",
+            "El producto debe tener U_HasVariants='Y'",
+            "SizeCode debe existir en OSZC (si se proporciona)",
+            "ColorCode debe existir en Colors (si se proporciona)",
+            "No puede existir otra variante con la misma combinación SizeCode+ColorCode"
+          ],
+          "error_examples": {
+            "product_not_found": {
+              "status": 404,
+              "body": {
+                "message": "El producto con código 'GASEOSA' no existe."
+              }
+            },
+            "variants_not_enabled": {
+              "status": 400,
+              "body": {
+                "message": "El producto 'GASEOSA' no tiene variantes habilitadas. Configure U_HasVariants='Y' primero."
+              }
+            },
+            "size_not_found": {
+              "status": 400,
+              "body": {
+                "message": "El tamaño con código '500ML' no existe."
+              }
+            },
+            "duplicate_variant": {
+              "status": 409,
+              "body": {
+                "message": "Ya existe una variante con la misma combinación de tamaño y color."
+              }
+            }
+          }
+        },
+
+        "4_create_variants_bulk": {
+          "method": "POST",
+          "endpoint": "/api/Products/{productCode}/Variants/bulk",
+          "description": "Crea múltiples variantes en una sola operación (ideal para selección múltiple de tamaños)",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código del producto base"
+            }
+          },
+          "request_body": {
+            "variants": {
+              "type": "array",
+              "required": true,
+              "min_items": 1,
+              "description": "Array de objetos VariantCreateDto",
+              "items": {
+                "type": "VariantCreateDto",
+                "description": "Mismo formato que crear variante individual"
+              }
+            }
+          },
+          "example_request": {
+            "endpoint": "/api/Products/GASEOSA/Variants/bulk",
+            "body": {
+              "variants": [
+                {
+                  "variantName": "Coca Cola 500ml",
+                  "brandName": "Coca Cola",
+                  "sizeCode": "500ML",
+                  "priceAdjustment": 5.00,
+                  "available": "Y"
+                },
+                {
+                  "variantName": "Coca Cola 750ml",
+                  "brandName": "Coca Cola",
+                  "sizeCode": "750ML",
+                  "priceAdjustment": 8.00,
+                  "available": "Y"
+                },
+                {
+                  "variantName": "Pepsi 500ml",
+                  "brandName": "Pepsi",
+                  "sizeCode": "500ML",
+                  "priceAdjustment": 4.50,
+                  "available": "Y"
+                }
+              ]
+            }
+          },
+          "response_example_success": {
+            "status": 200,
+            "body": {
+              "totalRequested": 3,
+              "successfullyCreated": 3,
+              "failed": 0,
+              "createdVariants": [
+                {
+                  "variantID": 1,
+                  "itemCode": "GASEOSA",
+                  "variantName": "Coca Cola 500ml",
+                  "brandName": "Coca Cola",
+                  "sizeCode": "500ML",
+                  "priceAdjustment": 5.00,
+                  "available": "Y",
+                  "sizeName": "500 Mililitros",
+                  "basePrice": 25.00,
+                  "finalPrice": 30.00
+                },
+                {
+                  "variantID": 2,
+                  "itemCode": "GASEOSA",
+                  "variantName": "Coca Cola 750ml",
+                  "brandName": "Coca Cola",
+                  "sizeCode": "750ML",
+                  "priceAdjustment": 8.00,
+                  "available": "Y",
+                  "sizeName": "750 Mililitros",
+                  "basePrice": 25.00,
+                  "finalPrice": 33.00
+                },
+                {
+                  "variantID": 3,
+                  "itemCode": "GASEOSA",
+                  "variantName": "Pepsi 500ml",
+                  "brandName": "Pepsi",
+                  "sizeCode": "500ML",
+                  "priceAdjustment": 4.50,
+                  "available": "Y",
+                  "sizeName": "500 Mililitros",
+                  "basePrice": 25.00,
+                  "finalPrice": 29.50
+                }
+              ],
+              "errors": []
+            }
+          },
+          "response_example_with_errors": {
+            "status": 200,
+            "body": {
+              "totalRequested": 3,
+              "successfullyCreated": 2,
+              "failed": 1,
+              "createdVariants": [
+                {
+                  "variantID": 1,
+                  "itemCode": "GASEOSA",
+                  "variantName": "Coca Cola 500ml",
+                  "brandName": "Coca Cola",
+                  "sizeCode": "500ML",
+                  "priceAdjustment": 5.00,
+                  "available": "Y",
+                  "sizeName": "500 Mililitros",
+                  "basePrice": 25.00,
+                  "finalPrice": 30.00
+                }
+              ],
+              "errors": [
+                "Tamaño '999ML': no existe.",
+                "Variante 'Pepsi 500ml': ya existe con la misma combinación."
+              ]
+            }
+          },
+          "behavior_notes": [
+            "Intenta crear todas las variantes solicitadas",
+            "Si una falla, continúa con las demás",
+            "Retorna resumen con éxitos y errores",
+            "Status 200 incluso si algunas fallan (revisa 'failed' y 'errors')"
+          ]
+        },
+
+        "5_update_variant": {
+          "method": "PUT",
+          "endpoint": "/api/Products/{productCode}/Variants/{variantId}",
+          "description": "Actualiza una variante existente",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código del producto base"
+            },
+            "variantId": {
+              "type": "integer",
+              "description": "ID de la variante"
+            }
+          },
+          "non_modifiable_fields": ["ItemCode", "VariantID"],
+          "request_body": {
+            "variantName": {
+              "type": "string",
+              "required": true,
+              "max_length": 150,
+              "description": "Nombre de la variante"
+            },
+            "brandName": {
+              "type": "string",
+              "required": false,
+              "max_length": 100,
+              "description": "Nombre de la marca"
+            },
+            "sizeCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código del tamaño"
+            },
+            "colorCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50,
+              "description": "Código del color"
+            },
+            "priceAdjustment": {
+              "type": "decimal",
+              "required": false,
+              "default": 0,
+              "description": "Ajuste de precio"
+            },
+            "available": {
+              "type": "string",
+              "required": false,
+              "enum": ["Y", "N"],
+              "default": "Y",
+              "description": "Disponibilidad"
+            }
+          },
+          "example_request": {
+            "endpoint": "/api/Products/GASEOSA/Variants/1",
+            "body": {
+              "variantName": "Coca Cola 500ml - Edición Especial",
+              "brandName": "Coca Cola",
+              "sizeCode": "500ML",
+              "colorCode": null,
+              "priceAdjustment": 6.00,
+              "available": "Y"
+            }
+          },
+          "response_example": {
+            "status": 200,
+            "body": {
+              "variantID": 1,
+              "itemCode": "GASEOSA",
+              "variantName": "Coca Cola 500ml - Edición Especial",
+              "brandName": "Coca Cola",
+              "sizeCode": "500ML",
+              "colorCode": null,
+              "priceAdjustment": 6.00,
+              "available": "Y",
+              "sizeName": "500 Mililitros",
+              "colorName": null,
+              "basePrice": 25.00,
+              "finalPrice": 31.00
+            }
+          },
+          "error_examples": {
+            "not_found": {
+              "status": 404,
+              "body": {
+                "message": "La variante con ID '1' no existe para el producto 'GASEOSA'."
+              }
+            },
+            "duplicate": {
+              "status": 409,
+              "body": {
+                "message": "Ya existe otra variante con la misma combinación de tamaño y color."
+              }
+            }
+          }
+        },
+
+        "6_delete_variant": {
+          "method": "DELETE",
+          "endpoint": "/api/Products/{productCode}/Variants/{variantId}",
+          "description": "Elimina una variante de un producto",
+          "path_parameters": {
+            "productCode": {
+              "type": "string",
+              "description": "Código del producto base"
+            },
+            "variantId": {
+              "type": "integer",
+              "description": "ID de la variante"
+            }
+          },
+          "example_request": "/api/Products/GASEOSA/Variants/1",
+          "response_example": {
+            "status": 204,
+            "body": null
+          },
+          "validations": [
+            "No se puede eliminar si está siendo usada en opciones de combos (OCBO)"
+          ],
+          "error_examples": {
+            "not_found": {
+              "status": 404,
+              "body": {
+                "message": "La variante con ID '1' no existe para el producto 'GASEOSA'."
+              }
+            },
+            "in_use": {
+              "status": 400,
+              "body": {
+                "message": "No se puede eliminar la variante porque está siendo usada en opciones de combos."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "combos": {
+      "description": "Endpoints para gestionar combos (productos con múltiples opciones configurables)",
+      "base_endpoint": "/api/Combos",
+      "important_notes": [
+        "Los combos son productos especiales con IsCombo='Y'",
+        "Un combo puede tener múltiples opciones agrupadas por GroupCode",
+        "Cada opción puede tener diferencia de precio (PriceDiff)",
+        "Las opciones se ordenan por GroupCode, DisplayOrder y LineNum"
+      ],
+
+      "operations": {
+        "1_get_all_combos": {
+          "method": "GET",
+          "endpoint": "/api/Combos",
+          "description": "Obtiene todos los combos disponibles con sus opciones",
+          "response_example": {
+            "status": 200,
+            "body": [
+              {
+                "itemCode": "COMBO001",
+                "itemName": "Combo Hamburguesa",
+                "frgnName": "Burger Combo",
+                "price": 120.00,
+                "discount": 5,
+                "imageUrl": "https://api.example.com/images/combo-burger.jpg",
+                "description": "Hamburguesa + Papas + Bebida",
+                "isCombo": "Y",
+                "available": "Y",
+                "enabled": "Y",
+                "sellItem": "Y",
+                "options": [
+                  {
+                    "optionCode": 1,
+                    "comboItemCode": "COMBO001",
+                    "componentLineNum": 1,
+                    "groupCode": "BEBIDAS",
+                    "itemCode": "COCA350",
+                    "itemName": null,
+                    "sizeCode": "MED",
+                    "optionItemName": "Coca Cola 350ml",
+                    "optionPrice": 25.00,
+                    "priceDiff": 0,
+                    "finalPrice": 120.00,
+                    "isDefault": "Y",
+                    "upLevel": 0,
+                    "upLabel": null,
+                    "lineNum": 1,
+                    "displayOrder": 1,
+                    "available": "Y",
+                    "imageUrl": "https://api.example.com/images/coca350.jpg",
+                    "description": "Refresco Coca Cola 350ml"
+                  },
+                  {
+                    "optionCode": 2,
+                    "comboItemCode": "COMBO001",
+                    "componentLineNum": 1,
+                    "groupCode": "BEBIDAS",
+                    "itemCode": "COCA500",
+                    "itemName": "Coca Grande",
+                    "sizeCode": "LRG",
+                    "optionItemName": "Coca Cola 500ml",
+                    "optionPrice": 30.00,
+                    "priceDiff": 5.00,
+                    "finalPrice": 125.00,
+                    "isDefault": "N",
+                    "upLevel": 1,
+                    "upLabel": "Agrandar bebida",
+                    "lineNum": 2,
+                    "displayOrder": 2,
+                    "available": "Y",
+                    "imageUrl": "https://api.example.com/images/coca500.jpg",
+                    "description": "Refresco Coca Cola 500ml"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+
+        "2_get_combo_by_code": {
+          "method": "GET",
+          "endpoint": "/api/Combos/{comboCode}",
+          "description": "Obtiene un combo específico con todas sus opciones",
+          "example_request": "/api/Combos/COMBO001",
+          "response_example": {
+            "status": 200,
+            "body": {
+              "itemCode": "COMBO001",
+              "itemName": "Combo Hamburguesa",
+              "price": 120.00,
+              "options": []
+            }
+          }
+        },
+
+        "3_create_combo": {
+          "method": "POST",
+          "endpoint": "/api/Combos",
+          "description": "Crea un combo completo con sus opciones en una sola operación",
+          "content_type": "application/json",
+          "request_body_schema": {
+            "itemCode": {
+              "type": "string",
+              "required": true,
+              "max_length": 50,
+              "description": "Código único del combo"
+            },
+            "itemName": {
+              "type": "string",
+              "required": true,
+              "max_length": 150,
+              "description": "Nombre del combo"
+            },
+            "frgnName": {
+              "type": "string",
+              "required": false,
+              "max_length": 150
+            },
+            "price": {
+              "type": "decimal",
+              "required": true,
+              "description": "Precio base del combo"
+            },
+            "discount": {
+              "type": "decimal",
+              "required": false,
+              "min": 0,
+              "max": 100
+            },
+            "imageUrl": {
+              "type": "string",
+              "required": false,
+              "max_length": 255
+            },
+            "description": {
+              "type": "string",
+              "required": false,
+              "max_length": 255
+            },
+            "frgnDescription": {
+              "type": "string",
+              "required": false,
+              "max_length": 255
+            },
+            "groupItemCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50
+            },
+            "categoryItemCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50
+            },
+            "waitingTime": {
+              "type": "string",
+              "required": false,
+              "max_length": 50
+            },
+            "rating": {
+              "type": "decimal",
+              "required": false,
+              "min": 0,
+              "max": 5
+            },
+            "eanCode": {
+              "type": "string",
+              "required": false,
+              "max_length": 50
+            },
+            "options": {
+              "type": "array",
+              "required": false,
+              "description": "Lista de opciones del combo",
+              "items": {
+                "componentLineNum": {
+                  "type": "integer",
+                  "required": true,
+                  "description": "Número de línea del componente (relacionado con la receta)"
+                },
+                "groupCode": {
+                  "type": "string",
+                  "required": true,
+                  "max_length": 50,
+                  "description": "Código del grupo de opciones (ej: BEBIDAS, PAPAS, SALSAS)"
+                },
+                "itemCode": {
+                  "type": "string",
+                  "required": true,
+                  "max_length": 50,
+                  "description": "Código del producto que es opción"
+                },
+                "itemName": {
+                  "type": "string",
+                  "required": false,
+                  "max_length": 150,
+                  "description": "Nombre personalizado (opcional, si no se especifica usa el del producto)"
+                },
+                "sizeCode": {
+                  "type": "string",
+                  "required": false,
+                  "max_length": 50,
+                  "description": "Código del tamaño (ej: MED, LRG)"
+                },
+                "isDefault": {
+                  "type": "string",
+                  "required": true,
+                  "enum": ["Y", "N"],
+                  "default": "N",
+                  "description": "Indica si es la opción por defecto del grupo"
+                },
+                "priceDiff": {
+                  "type": "decimal",
+                  "required": false,
+                  "default": 0,
+                  "description": "Diferencia de precio respecto al precio base del combo"
+                },
+                "upLevel": {
+                  "type": "integer",
+                  "required": false,
+                  "default": 0,
+                  "description": "Nivel de mejora (0=normal, 1=upgrade, etc.)"
+                },
+                "upLabel": {
+                  "type": "string",
+                  "required": false,
+                  "max_length": 100,
+                  "description": "Etiqueta de la mejora (ej: 'Agrandar bebida')"
+                },
+                "lineNum": {
+                  "type": "integer",
+                  "required": false,
+                  "default": 0,
+                  "description": "Número de línea para ordenamiento"
+                },
+                "displayOrder": {
+                  "type": "integer",
+                  "required": false,
+                  "default": 0,
+                  "description": "Orden de visualización"
+                },
+                "available": {
+                  "type": "string",
+                  "required": false,
+                  "enum": ["Y", "N"],
+                  "default": "Y",
+                  "description": "Disponibilidad de la opción"
+                }
+              }
+            }
+          },
+          "example_request": {
+            "itemCode": "COMBO002",
+            "itemName": "Combo Familiar",
+            "frgnName": "Family Combo",
+            "price": 350.00,
+            "discount": 10,
+            "imageUrl": "/images/combo-familiar.jpg",
+            "description": "4 Hamburguesas + 2 Papas Grandes + 4 Bebidas",
+            "frgnDescription": "4 Burgers + 2 Large Fries + 4 Drinks",
+            "groupItemCode": "COMBOS",
+            "categoryItemCode": "FOOD",
+            "waitingTime": "25-30 min",
+            "rating": 4.8,
+            "eanCode": "7501234567999",
+            "options": [
+              {
+                "componentLineNum": 1,
+                "groupCode": "BEBIDAS",
+                "itemCode": "COCA350",
+                "itemName": null,
+                "sizeCode": "MED",
+                "isDefault": "Y",
+                "priceDiff": 0,
+                "upLevel": 0,
+                "upLabel": null,
+                "lineNum": 1,
+                "displayOrder": 1,
+                "available": "Y"
+              },
+              {
+                "componentLineNum": 1,
+                "groupCode": "BEBIDAS",
+                "itemCode": "COCA500",
+                "itemName": "Coca Grande",
+                "sizeCode": "LRG",
+                "isDefault": "N",
+                "priceDiff": 5.00,
+                "upLevel": 1,
+                "upLabel": "Agrandar bebida",
+                "lineNum": 2,
+                "displayOrder": 2,
+                "available": "Y"
+              },
+              {
+                "componentLineNum": 1,
+                "groupCode": "BEBIDAS",
+                "itemCode": "SPRITE350",
+                "itemName": null,
+                "sizeCode": "MED",
+                "isDefault": "N",
+                "priceDiff": 0,
+                "upLevel": 0,
+                "upLabel": null,
+                "lineNum": 3,
+                "displayOrder": 3,
+                "available": "Y"
+              },
+              {
+                "componentLineNum": 2,
+                "groupCode": "PAPAS",
+                "itemCode": "FRIES_MED",
+                "itemName": null,
+                "sizeCode": "MED",
+                "isDefault": "Y",
+                "priceDiff": 0,
+                "upLevel": 0,
+                "upLabel": null,
+                "lineNum": 1,
+                "displayOrder": 1,
+                "available": "Y"
+              },
+              {
+                "componentLineNum": 2,
+                "groupCode": "PAPAS",
+                "itemCode": "FRIES_LRG",
+                "itemName": "Papas Grandes",
+                "sizeCode": "LRG",
+                "isDefault": "N",
+                "priceDiff": 10.00,
+                "upLevel": 1,
+                "upLabel": "Agrandar papas",
+                "lineNum": 2,
+                "displayOrder": 2,
+                "available": "Y"
+              }
+            ]
+          },
+          "response_example": {
+            "status": 201,
+            "headers": {
+              "Location": "/api/Combos/COMBO002"
+            },
+            "body": {
+              "itemCode": "COMBO002",
+              "itemName": "Combo Familiar",
+              "price": 350.00,
+              "options": []
+            }
+          },
+          "error_responses": {
+            "400": {
+              "description": "Datos inválidos o producto opción no existe",
+              "example": {
+                "message": "El producto opción con código COCA350 no existe."
+              }
+            },
+            "409": {
+              "description": "El combo ya existe",
+              "example": {
+                "message": "Ya existe un producto con el código: COMBO002"
+              }
+            }
+          }
+        },
+
+        "4_update_combo": {
+          "method": "PUT",
+          "endpoint": "/api/Combos/{comboCode}",
+          "description": "Actualiza los datos principales del combo (NO las opciones)",
+          "note": "Para agregar/modificar/eliminar opciones, usar los endpoints de opciones",
+          "example_request": {
+            "itemName": "Combo Familiar Premium",
+            "frgnName": "Premium Family Combo",
+            "price": 380.00,
+            "discount": 15,
+            "imageUrl": "/images/combo-familiar-premium.jpg",
+            "description": "4 Hamburguesas Premium + 2 Papas + 4 Bebidas",
+            "available": "Y",
+            "enabled": "Y"
+          },
+          "response_example": {
+            "status": 200,
+            "body": {
+              "itemCode": "COMBO002",
+              "itemName": "Combo Familiar Premium",
+              "price": 380.00
+            }
+          }
+        },
+
+        "5_delete_combo": {
+          "method": "DELETE",
+          "endpoint": "/api/Combos/{comboCode}",
+          "description": "Elimina un combo y TODAS sus opciones",
+          "warning": "Esta operación es irreversible y elimina todas las opciones asociadas",
+          "example_request": "/api/Combos/COMBO002",
+          "response_example": {
+            "status": 204,
+            "body": null
+          }
+        },
+
+        "6_get_combo_options": {
+          "method": "GET",
+          "endpoint": "/api/Combos/{comboCode}/options",
+          "description": "Obtiene solo las opciones de un combo específico",
+          "example_request": "/api/Combos/COMBO001/options",
+          "response_example": {
+            "status": 200,
+            "body": [
+              {
+                "optionCode": 1,
+                "comboItemCode": "COMBO001",
+                "groupCode": "BEBIDAS",
+                "itemCode": "COCA350",
+                "optionItemName": "Coca Cola 350ml",
+                "priceDiff": 0,
+                "finalPrice": 120.00,
+                "isDefault": "Y"
+              }
+            ]
+          }
+        },
+
+        "7_add_combo_option": {
+          "method": "POST",
+          "endpoint": "/api/Combos/{comboCode}/options",
+          "description": "Agrega una nueva opción a un combo existente",
+          "example_request": {
+            "componentLineNum": 1,
+            "groupCode": "BEBIDAS",
+            "itemCode": "FANTA350",
+            "itemName": null,
+            "sizeCode": "MED",
+            "isDefault": "N",
+            "priceDiff": 0,
+            "upLevel": 0,
+            "upLabel": null,
+            "lineNum": 4,
+            "displayOrder": 4,
+            "available": "Y"
+          },
+          "response_example": {
+            "status": 201,
+            "body": {
+              "optionCode": 5,
+              "comboItemCode": "COMBO001",
+              "groupCode": "BEBIDAS",
+              "itemCode": "FANTA350",
+              "optionItemName": "Fanta Naranja 350ml",
+              "priceDiff": 0,
+              "finalPrice": 120.00
+            }
+          }
+        },
+
+        "8_update_combo_option": {
+          "method": "PUT",
+          "endpoint": "/api/Combos/{comboCode}/options/{optionCode}",
+          "description": "Actualiza una opción específica de un combo",
+          "path_parameters": {
+            "comboCode": "COMBO001",
+            "optionCode": 5
+          },
+          "example_request": {
+            "componentLineNum": 1,
+            "groupCode": "BEBIDAS",
+            "itemCode": "FANTA350",
+            "itemName": "Fanta Naranja",
+            "sizeCode": "MED",
+            "isDefault": "N",
+            "priceDiff": 2.00,
+            "upLevel": 0,
+            "upLabel": null,
+            "lineNum": 4,
+            "displayOrder": 4,
+            "available": "Y"
+          },
+          "response_example": {
+            "status": 200,
+            "body": {
+              "optionCode": 5,
+              "priceDiff": 2.00,
+              "finalPrice": 122.00
+            }
+          }
+        },
+
+        "9_delete_combo_option": {
+          "method": "DELETE",
+          "endpoint": "/api/Combos/{comboCode}/options/{optionCode}",
+          "description": "Elimina una opción específica de un combo",
+          "example_request": "/api/Combos/COMBO001/options/5",
+          "response_example": {
+            "status": 204,
+            "body": null
+          }
+        }
+      }
+    },
+
+    "workflows": {
+      "description": "Flujos de trabajo recomendados para operaciones comunes",
+
+      "workflow_1_create_simple_product": {
+        "title": "Crear un Producto Simple",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Preparar datos del producto",
+            "example": {
+              "itemCode": "TACO001",
+              "eanCode": "7501111222333",
+              "itemName": "Taco de Asada",
+              "price": 25.00,
+              "u_ProductType": "S"
+            }
+          },
+          {
+            "step": 2,
+            "action": "Enviar POST a /api/Products",
+            "method": "POST",
+            "endpoint": "/api/Products"
+          },
+          {
+            "step": 3,
+            "action": "Verificar respuesta",
+            "expected_status": 201,
+            "note": "El producto aparecerá inmediatamente en GET /api/Products/available"
+          }
+        ]
+      },
+
+      "workflow_2_create_combo_complete": {
+        "title": "Crear un Combo Completo con Opciones",
+        "description": "Este es el flujo recomendado para crear combos desde la web",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Asegurarse que los productos opciones ya existen",
+            "note": "Antes de crear el combo, todos los productos que serán opciones (COCA350, FRIES_MED, etc.) deben existir en la BD",
+            "validation": "GET /api/Products/{itemCode} para cada producto opción"
+          },
+          {
+            "step": 2,
+            "action": "Preparar estructura del combo con opciones",
+            "example": {
+              "itemCode": "COMBO_MEGA",
+              "itemName": "Mega Combo",
+              "price": 150.00,
+              "groupItemCode": "COMBOS",
+              "categoryItemCode": "FOOD",
+              "options": [
+                {
+                  "componentLineNum": 1,
+                  "groupCode": "BEBIDAS",
+                  "itemCode": "COCA350",
+                  "isDefault": "Y",
+                  "priceDiff": 0,
+                  "displayOrder": 1
+                },
+                {
+                  "componentLineNum": 1,
+                  "groupCode": "BEBIDAS",
+                  "itemCode": "COCA500",
+                  "isDefault": "N",
+                  "priceDiff": 5.00,
+                  "upLevel": 1,
+                  "upLabel": "Agrandar",
+                  "displayOrder": 2
+                }
+              ]
+            }
+          },
+          {
+            "step": 3,
+            "action": "Enviar POST a /api/Combos",
+            "method": "POST",
+            "endpoint": "/api/Combos"
+          },
+          {
+            "step": 4,
+            "action": "Verificar respuesta",
+            "expected_status": 201,
+            "note": "El combo y todas sus opciones se crean en una sola transacción"
+          },
+          {
+            "step": 5,
+            "action": "Obtener combo creado con opciones",
+            "method": "GET",
+            "endpoint": "/api/Combos/COMBO_MEGA",
+            "note": "Verificar que todas las opciones se crearon correctamente"
+          }
+        ]
+      },
+
+      "workflow_3_add_option_to_existing_combo": {
+        "title": "Agregar Nueva Opción a Combo Existente",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Verificar que el combo existe",
+            "method": "GET",
+            "endpoint": "/api/Combos/COMBO_MEGA"
+          },
+          {
+            "step": 2,
+            "action": "Verificar que el producto opción existe",
+            "method": "GET",
+            "endpoint": "/api/Products/SPRITE350"
+          },
+          {
+            "step": 3,
+            "action": "Agregar la nueva opción",
+            "method": "POST",
+            "endpoint": "/api/Combos/COMBO_MEGA/options",
+            "body": {
+              "componentLineNum": 1,
+              "groupCode": "BEBIDAS",
+              "itemCode": "SPRITE350",
+              "isDefault": "N",
+              "priceDiff": 0,
+              "displayOrder": 3
+            }
+          }
+        ]
+      },
+
+      "workflow_4_display_combo_in_web": {
+        "title": "Mostrar Combos en la Web con Opciones Agrupadas",
+        "description": "Cómo procesar y mostrar combos en la interfaz web",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Obtener todos los combos disponibles",
+            "method": "GET",
+            "endpoint": "/api/Combos"
+          },
+          {
+            "step": 2,
+            "action": "Agrupar opciones por GroupCode",
+            "javascript_example": "const groupedOptions = combo.options.reduce((groups, option) => {\n  const group = option.groupCode;\n  if (!groups[group]) groups[group] = [];\n  groups[group].push(option);\n  return groups;\n}, {});"
+          },
+          {
+            "step": 3,
+            "action": "Renderizar UI con grupos de opciones",
+            "ui_structure": {
+              "combo_title": "Mega Combo - $150.00",
+              "option_groups": [
+                {
+                  "group_name": "BEBIDAS",
+                  "group_label": "Elige tu bebida:",
+                  "options": [
+                    {
+                      "label": "Coca Cola 350ml (Incluido)",
+                      "price": 150.00,
+                      "is_default": true
+                    },
+                    {
+                      "label": "Coca Cola 500ml (+$5.00 - Agrandar)",
+                      "price": 155.00,
+                      "is_upgrade": true
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "step": 4,
+            "action": "Calcular precio total según selección",
+            "formula": "precioBase + suma(priceDiff de opciones seleccionadas)"
+          }
+        ]
+      }
+    },
+
+    "common_errors": {
+      "400_bad_request": {
+        "description": "Datos de entrada inválidos",
+        "common_causes": [
+          "Campos requeridos faltantes",
+          "Formato incorrecto (ej: precio negativo)",
+          "Valores fuera de rango",
+          "Expresiones regulares no coinciden (ej: Available debe ser Y o N)"
+        ],
+        "solution": "Revisar el error detallado en la respuesta y corregir los datos"
+      },
+      "404_not_found": {
+        "description": "Recurso no encontrado",
+        "common_causes": [
+          "Código de producto/combo no existe",
+          "Producto opción no existe al crear combo",
+          "OptionCode inválido"
+        ],
+        "solution": "Verificar que el código existe antes de hacer la operación"
+      },
+      "409_conflict": {
+        "description": "Conflicto - el recurso ya existe",
+        "common_causes": [
+          "ItemCode duplicado al crear producto",
+          "Opción duplicada en combo (mismo GroupCode + ItemCode + ComponentLineNum)"
+        ],
+        "solution": "Usar códigos únicos o actualizar el recurso existente con PUT"
+      },
+      "500_internal_server_error": {
+        "description": "Error interno del servidor",
+        "common_causes": [
+          "Error de base de datos",
+          "Relaciones de FK inválidas",
+          "Campos NULL cuando son requeridos"
+        ],
+        "solution": "Revisar logs del servidor, verificar que FK existan, contactar soporte"
+      }
+    },
+
+    "best_practices": {
+      "for_web_applications": [
+        {
+          "practice": "Cachear productos y combos",
+          "description": "Los productos cambian poco, considerar cache de 5-10 minutos",
+          "recommendation": "Usar GET /api/Products/available para catálogo público"
+        },
+        {
+          "practice": "Validar existencia antes de crear",
+          "description": "Antes de crear combos, verificar que productos opciones existen",
+          "recommendation": "Hacer validación en frontend antes de POST"
+        },
+        {
+          "practice": "Manejar imágenes correctamente",
+          "description": "La API retorna URLs completas, usar directamente en <img src>",
+          "recommendation": "No concatenar base URL, ya viene completa"
+        },
+        {
+          "practice": "Agrupar opciones de combo en UI",
+          "description": "Agrupar por GroupCode para mejor UX",
+          "recommendation": "Mostrar radio buttons por grupo, permitir una selección por grupo"
+        },
+        {
+          "practice": "Mostrar precios finales",
+          "description": "Usar campo finalPrice de las opciones",
+          "recommendation": "Mostrar diferencia de precio (+$5.00) para upgrades"
+        },
+        {
+          "practice": "Respetar DisplayOrder",
+          "description": "Ordenar opciones por displayOrder para consistencia",
+          "recommendation": "Ordenar por: GroupCode ASC, DisplayOrder ASC, LineNum ASC"
+        },
+        {
+          "practice": "Indicar opción por defecto",
+          "description": "Pre-seleccionar opciones donde IsDefault='Y'",
+          "recommendation": "Facilita la experiencia del usuario"
+        }
+      ],
+      "performance_tips": [
+        "Usar paginación en listados grandes (GET /api/Products con pageSize)",
+        "Filtrar por categoría/grupo para reducir resultados",
+        "Comprimir imágenes antes de subirlas (la API solo almacena URLs)",
+        "Usar GET /api/Combos solo cuando sea necesario (incluye todas las opciones)"
+      ],
+      "security_recommendations": [
+        "Validar entradas en frontend antes de enviar",
+        "No exponer códigos internos sensibles al público",
+        "Implementar rate limiting en producción",
+        "Sanitizar inputs para prevenir XSS/SQL injection"
+      ]
+    },
+
+    "data_model_reference": {
+      "product_types": {
+        "S": "Simple - Producto estándar sin variantes ni opciones",
+        "V": "Variable - Producto con variantes (ej: tallas, colores)",
+        "C": "Combo - Producto con opciones configurables"
+      },
+      "yes_no_fields": {
+        "description": "Campos que usan Y/N en lugar de boolean",
+        "fields": [
+          "SellItem",
+          "Available",
+          "Enabled",
+          "IsDefault",
+          "IsCombo",
+          "U_HasVariants",
+          "U_IsVariant"
+        ],
+        "valid_values": ["Y", "N"]
+      },
+      "combo_concepts": {
+        "ComponentLineNum": "Relaciona la opción con un componente del ProductTree (receta)",
+        "GroupCode": "Agrupa opciones relacionadas (ej: todas las bebidas tienen GroupCode='BEBIDAS')",
+        "PriceDiff": "Diferencia de precio respecto al precio base del combo (puede ser negativa)",
+        "FinalPrice": "Precio calculado automáticamente: precioBaseCombo + priceDiff",
+        "UpLevel": "Nivel de mejora (0=normal, 1+=upgrade)",
+        "UpLabel": "Texto para mostrar mejora (ej: 'Agrandar bebida')",
+        "DisplayOrder": "Orden de visualización (menor número = aparece primero)",
+        "IsDefault": "Opción pre-seleccionada en la UI"
+      }
+    },
+
+    "appendix": {
+      "changelog": [
+        {
+          "version": "1.0.0",
+          "date": "2025-10-01",
+          "changes": [
+            "Documentación inicial de API",
+            "Endpoints de productos y combos",
+            "Workflows y best practices"
+          ]
+        }
+      ],
+      "contact": {
+        "support_email": "support@example.com",
+        "documentation_url": "https://docs.example.com",
+        "api_status_page": "https://status.example.com"
+      }
+    }
+  }
+}

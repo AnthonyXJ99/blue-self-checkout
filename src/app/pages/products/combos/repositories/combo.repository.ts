@@ -5,8 +5,11 @@ import { ProductRepository } from '../../product/repositories/product.repository
 import {
   ComboProduct,
   ComboOption,
-  ComboOptionCreateRequest,
-  ComboOptionUpdateRequest
+  ComboOptionItemDto,
+  ComboOptionUpdateDto,
+  ComboCreateDto,
+  ComboUpdateDto,
+  ComboResponseDto
 } from '../model/combo.model';
 import { Product } from '../../product/model/product.model';
 
@@ -31,7 +34,7 @@ export class ComboRepository {
    */
   getAllCombos(): Observable<ComboProduct[]> {
     return this.comboApiService.getAllCombos().pipe(
-      map(combos => combos || []),
+      map(combos => combos as ComboProduct[] || []),
       catchError(error => {
         console.error('Error in ComboRepository.getAllCombos:', error);
         return of([]);
@@ -43,7 +46,8 @@ export class ComboRepository {
    * Obtiene un combo específico con sus opciones
    */
   getComboById(comboCode: string): Observable<ComboProduct | null> {
-    return this.comboApiService.getComboOptions(comboCode).pipe(
+    return this.comboApiService.getComboById(comboCode).pipe(
+      map(combo => combo as ComboProduct),
       catchError(error => {
         console.error(`Error getting combo ${comboCode}:`, error);
         return of(null);
@@ -52,32 +56,20 @@ export class ComboRepository {
   }
 
   /**
-   * Crea un nuevo combo completo (producto + opciones)
+   * Crea un nuevo combo completo con sus opciones en una sola operación
+   * Esta es la forma correcta de crear combos según la nueva API
    */
-  createCombo(comboData: any, options: ComboOptionCreateRequest[]): Observable<ComboProduct | null> {
+  createCombo(comboData: ComboCreateDto): Observable<ComboProduct | null> {
     console.log('🏗️ ComboRepository.createCombo():');
     console.log('📦 Combo Data:', comboData);
-    console.log('🔧 Options:', options);
 
-    return this.comboApiService.createComboProduct(comboData).pipe(
+    return this.comboApiService.createCombo(comboData).pipe(
       map(createdCombo => {
         if (!createdCombo) {
-          throw new Error('Failed to create combo product');
+          throw new Error('Failed to create combo');
         }
-
-        // Si hay opciones, crearlas en lote
-        if (options && options.length > 0) {
-          this.comboApiService.createMultipleComboOptions(createdCombo.itemCode, options).subscribe({
-            next: (results) => {
-              console.log('✅ Combo options created:', results);
-            },
-            error: (error) => {
-              console.error('❌ Error creating combo options:', error);
-            }
-          });
-        }
-
-        return createdCombo;
+        console.log('✅ Combo created successfully:', createdCombo);
+        return createdCombo as ComboProduct;
       }),
       catchError(error => {
         console.error('Error creating combo:', error);
@@ -87,10 +79,23 @@ export class ComboRepository {
   }
 
   /**
+   * Actualiza un combo existente (sin incluir opciones)
+   */
+  updateCombo(comboCode: string, updateData: ComboUpdateDto): Observable<ComboProduct | null> {
+    return this.comboApiService.updateCombo(comboCode, updateData).pipe(
+      map(updatedCombo => updatedCombo as ComboProduct),
+      catchError(error => {
+        console.error('Error updating combo:', error);
+        return of(null);
+      })
+    );
+  }
+
+  /**
    * Actualiza una opción específica de un combo
    */
-  updateComboOption(comboCode: string, groupCode: string, optionCode: string, updateData: ComboOptionUpdateRequest): Observable<boolean> {
-    return this.comboApiService.updateComboOption(comboCode, groupCode, optionCode, updateData).pipe(
+  updateComboOption(comboCode: string, optionCode: string, updateData: ComboOptionUpdateDto): Observable<boolean> {
+    return this.comboApiService.updateComboOption(comboCode, optionCode, updateData).pipe(
       map(result => !!result),
       catchError(error => {
         console.error('Error updating combo option:', error);
@@ -102,15 +107,15 @@ export class ComboRepository {
   /**
    * Elimina una opción específica de un combo
    */
-  deleteComboOption(comboCode: string, groupCode: string, optionCode: string): Observable<boolean> {
-    return this.comboApiService.deleteComboOption(comboCode, groupCode, optionCode);
+  deleteComboOption(comboCode: string, optionCode: string): Observable<boolean> {
+    return this.comboApiService.deleteComboOption(comboCode, optionCode);
   }
 
   /**
    * Elimina un combo completo
    */
   deleteCombo(comboCode: string): Observable<boolean> {
-    return this.comboApiService.deleteComboProduct(comboCode);
+    return this.comboApiService.deleteCombo(comboCode);
   }
 
   // ===== OPERACIONES DE NEGOCIO =====
@@ -119,7 +124,7 @@ export class ComboRepository {
    * Calcula el precio total de una selección de combo
    */
   calculateComboPrice(basePrice: number, selectedOptions: ComboOption[]): number {
-    const optionsPrice = selectedOptions.reduce((total, option) => total + option.priceDelta, 0);
+    const optionsPrice = selectedOptions.reduce((total, option) => total + option.priceDiff, 0);
     return basePrice + optionsPrice;
   }
 
@@ -187,14 +192,14 @@ export class ComboRepository {
   /**
    * Valida datos de combo antes de enviar a la API
    */
-  validateComboData(comboData: any): { isValid: boolean; errors: string[] } {
-    return this.comboApiService.validateComboProduct(comboData);
+  validateComboData(comboData: ComboCreateDto): { isValid: boolean; errors: string[] } {
+    return this.comboApiService.validateComboData(comboData);
   }
 
   /**
    * Valida datos de opción antes de enviar a la API
    */
-  validateOptionData(optionData: any): { isValid: boolean; errors: string[] } {
+  validateOptionData(optionData: ComboOptionItemDto): { isValid: boolean; errors: string[] } {
     return this.comboApiService.validateComboOption(optionData);
   }
 

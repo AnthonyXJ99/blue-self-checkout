@@ -45,8 +45,14 @@ export interface ProductMaterial {
     categoryItemCode?: string;      // Código de la categoría
     waitingTime?: string;           // Tiempo de espera
     rating?: number;                // Calificación
+    sizeCode?: string;              // Código del tamaño (OSZC)
+    u_ProductType?: string;         // Tipo de producto: S=Simple, V=Variable, C=Combo
+    u_HasVariants?: string;         // Tiene variantes (Y/N)
+    u_IsVariant?: string;           // Es variante (Y/N)
+    u_ParentItem?: string;          // Producto padre (si es variante)
     material: ProductMaterial[];    // Materiales del producto
     accompaniment: ProductAccompaniment[]; // Acompañamientos
+    options?: any[];                // Opciones del combo (según el modelo de combo)
   }
   
   /**
@@ -90,12 +96,18 @@ export interface ProductMaterial {
     available: string;              // Y/N
     enabled: string;                // Y/N
     isCombo?: string;               // Y/N
+    sizeCode?: string;              // Código del tamaño (OSZC)
+    u_ProductType?: string;         // Tipo de producto: S=Simple, V=Variable, C=Combo
+    u_HasVariants?: string;         // Tiene variantes (Y/N)
+    u_IsVariant?: string;           // Es variante (Y/N)
+    u_ParentItem?: string;          // Producto padre (si es variante)
     groupItemCode?: string;
     categoryItemCode?: string;
     waitingTime?: string;
     rating?: number;
     material?: ProductMaterial[];
     accompaniment?: ProductAccompaniment[];
+    options?: any[];                // Opciones del combo
   }
   
   /**

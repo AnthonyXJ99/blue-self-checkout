@@ -330,6 +330,62 @@ export class ProductRepository {
   }
 
   /**
+   * Comprueba si un producto es un combo
+   */
+  isCombo(product: Product): boolean {
+    return product.isCombo === 'Y';
+  }
+
+  /**
+   * Comprueba si un producto tiene variantes
+   */
+  hasVariants(product: Product): boolean {
+    return product.u_HasVariants === 'Y';
+  }
+
+  /**
+   * Comprueba si un producto es una variante
+   */
+  isVariant(product: Product): boolean {
+    return product.u_IsVariant === 'Y';
+  }
+
+  /**
+   * Añade una opción a un producto combo
+   */
+  addComboOption(product: Product, option: any): Product {
+    const updatedProduct = { ...product };
+    if (!updatedProduct.options) {
+      updatedProduct.options = [];
+    }
+    updatedProduct.options.push(option);
+    return updatedProduct;
+  }
+
+  /**
+   * Actualiza una opción de combo
+   */
+  updateComboOption(product: Product, index: number, option: any): Product {
+    const updatedProduct = { ...product };
+    if (!updatedProduct.options) {
+      updatedProduct.options = [];
+    }
+    updatedProduct.options[index] = option;
+    return updatedProduct;
+  }
+
+  /**
+   * Elimina una opción de combo
+   */
+  removeComboOption(product: Product, index: number): Product {
+    const updatedProduct = { ...product };
+    if (updatedProduct.options) {
+      updatedProduct.options.splice(index, 1);
+    }
+    return updatedProduct;
+  }
+
+  /**
    * Formatea el precio para mostrar en pesos chilenos
    */
   formatPrice(price: number, currency: string = 'CLP$'): string {

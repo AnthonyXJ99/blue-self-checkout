@@ -1,0 +1,344 @@
+{
+  "proyecto": "Sistema de Configuración de Sincronización POS",
+  "tecnologia": "Angular 18 con HttpClient",
+  "backend": {
+    "baseUrl": "http://tu-servidor/api",
+    "endpoints": {
+      "getAll": {
+        "method": "GET",
+        "url": "/systemconfiguration",
+        "descripcion": "Obtener todas las configuraciones",
+        "response": "Array<SyncConfigurationDto>"
+      },
+      "getById": {
+        "method": "GET",
+        "url": "/systemconfiguration/{id}",
+        "descripcion": "Obtener configuración por ID",
+        "response": "SyncConfigurationDto"
+      },
+      "getByPosCode": {
+        "method": "GET",
+        "url": "/systemconfiguration/pos/{posCode}",
+        "descripcion": "Obtener configuración de un POS específico (con fallback a global)",
+        "response": "SyncConfigurationDto"
+      },
+      "getGlobal": {
+        "method": "GET",
+        "url": "/systemconfiguration/global",
+        "descripcion": "Obtener solo la configuración global",
+        "response": "SyncConfigurationDto"
+      },
+      "create": {
+        "method": "POST",
+        "url": "/systemconfiguration",
+        "descripcion": "Crear nueva configuración",
+        "body": "CreateSyncConfigurationDto",
+        "response": "SyncConfigurationDto"
+      },
+      "update": {
+        "method": "PUT",
+        "url": "/systemconfiguration/{id}",
+        "descripcion": "Actualizar configuración existente",
+        "body": "UpdateSyncConfigurationDto",
+        "response": "SyncConfigurationDto"
+      },
+      "delete": {
+        "method": "DELETE",
+        "url": "/systemconfiguration/{id}",
+        "descripcion": "Eliminar configuración (no permite eliminar la global)",
+        "response": "204 No Content"
+      },
+      "toggle": {
+        "method": "PATCH",
+        "url": "/systemconfiguration/{id}/toggle",
+        "descripcion": "Activar/Desactivar configuración",
+        "response": "{ id: number, isActive: boolean }"
+      }
+    }
+  },
+  "modelos": {
+    "SyncConfigurationDto": {
+      "descripcion": "DTO de respuesta con todos los datos",
+      "propiedades": {
+        "id": "number",
+        "posCode": "string | null",
+        "posName": "string | null",
+        "ipAddress": "string | null",
+        "posEnabled": "boolean | null",
+        "configName": "string",
+        "description": "string | null",
+        "workManagerEnabled": "boolean",
+        "syncIntervalMinutes": "number",
+        "maxRetries": "number",
+        "retryDelayMinutes": "number",
+        "exponentialBackoff": "boolean",
+        "connectivityCheckSeconds": "number",
+        "serverPingTimeoutSeconds": "number",
+        "batchSize": "number",
+        "syncOnWifiOnly": "boolean",
+        "priority": "number",
+        "isActive": "boolean",
+        "createdAt": "string (ISO Date)",
+        "updatedAt": "string (ISO Date)",
+        "createdBy": "string | null",
+        "configType": "string ('GLOBAL' | 'SPECIFIC')"
+      }
+    },
+    "CreateSyncConfigurationDto": {
+      "descripcion": "DTO para crear nueva configuración",
+      "propiedades": {
+        "posCode": "string | null (max 50 chars)",
+        "configName": "string (required, max 100 chars)",
+        "description": "string | null (max 500 chars)",
+        "workManagerEnabled": "boolean (default: true)",
+        "syncIntervalMinutes": "number (range: 1-1440, default: 15)",
+        "maxRetries": "number (range: 0-10, default: 3)",
+        "retryDelayMinutes": "number (range: 1-60, default: 5)",
+        "exponentialBackoff": "boolean (default: true)",
+        "connectivityCheckSeconds": "number (range: 10-3600, default: 120)",
+        "serverPingTimeoutSeconds": "number (range: 1-60, default: 10)",
+        "batchSize": "number (range: 1-100, default: 10)",
+        "syncOnWifiOnly": "boolean (default: false)",
+        "priority": "number (range: 0-100, default: 0)",
+        "isActive": "boolean (default: true)",
+        "createdBy": "string | null (max 100 chars)"
+      },
+      "validaciones": {
+        "configName": "Requerido, máximo 100 caracteres",
+        "syncIntervalMinutes": "Entre 1 y 1440 minutos",
+        "maxRetries": "Entre 0 y 10",
+        "retryDelayMinutes": "Entre 1 y 60 minutos",
+        "connectivityCheckSeconds": "Entre 10 y 3600 segundos",
+        "serverPingTimeoutSeconds": "Entre 1 y 60 segundos",
+        "batchSize": "Entre 1 y 100",
+        "priority": "Entre 0 y 100"
+      }
+    },
+    "UpdateSyncConfigurationDto": {
+      "descripcion": "DTO para actualizar configuración (igual a Create pero con id requerido)",
+      "propiedades": "Igual a CreateSyncConfigurationDto + id: number (required)"
+    }
+  },
+  "instrucciones": {
+    "paso1_estructura": {
+      "titulo": "Crear estructura de carpetas en Angular",
+      "carpetas": [
+        "src/app/features/system-configuration/",
+        "src/app/features/system-configuration/models/",
+        "src/app/features/system-configuration/services/",
+        "src/app/features/system-configuration/components/",
+        "src/app/features/system-configuration/components/list/",
+        "src/app/features/system-configuration/components/form/",
+        "src/app/features/system-configuration/components/detail/"
+      ]
+    },
+    "paso2_modelos": {
+      "titulo": "Crear interfaces TypeScript",
+      "archivo": "src/app/features/system-configuration/models/sync-configuration.model.ts",
+      "contenido": "Crear las 3 interfaces: SyncConfigurationDto, CreateSyncConfigurationDto, UpdateSyncConfigurationDto según las propiedades definidas arriba"
+    },
+    "paso3_servicio": {
+      "titulo": "Crear servicio Angular con HttpClient",
+      "archivo": "src/app/features/system-configuration/services/system-configuration.service.ts",
+      "metodos_requeridos": [
+        "getAll(): Observable<SyncConfigurationDto[]>",
+        "getById(id: number): Observable<SyncConfigurationDto>",
+        "getByPosCode(posCode: string): Observable<SyncConfigurationDto>",
+        "getGlobal(): Observable<SyncConfigurationDto>",
+        "create(data: CreateSyncConfigurationDto): Observable<SyncConfigurationDto>",
+        "update(id: number, data: UpdateSyncConfigurationDto): Observable<SyncConfigurationDto>",
+        "delete(id: number): Observable<void>",
+        "toggleActive(id: number): Observable<{id: number, isActive: boolean}>"
+      ],
+      "notas": [
+        "Usar HttpClient para todas las peticiones",
+        "Implementar manejo de errores con catchError",
+        "Agregar headers apropiados (Content-Type: application/json)",
+        "Considerar agregar loading states",
+        "Implementar retry logic si es necesario"
+      ]
+    },
+    "paso4_componente_lista": {
+      "titulo": "Crear componente de listado",
+      "ruta": "src/app/features/system-configuration/components/list/",
+      "funcionalidades": [
+        "Mostrar tabla con todas las configuraciones",
+        "Columnas sugeridas: ID, Nombre, Tipo (Global/Específica), POS, Intervalo de Sync, Activo, Acciones",
+        "Botón 'Nueva Configuración'",
+        "Acciones por fila: Ver detalle, Editar, Eliminar, Toggle Activo/Inactivo",
+        "Filtros: por tipo (Global/Específica), por estado (Activo/Inactivo), búsqueda por nombre",
+        "Indicador visual para distinguir configuración global vs específica",
+        "Confirmación antes de eliminar",
+        "Mostrar mensaje de error si se intenta eliminar la configuración global",
+        "Refresh automático después de operaciones CRUD"
+      ]
+    },
+    "paso5_componente_formulario": {
+      "titulo": "Crear componente de formulario (crear/editar)",
+      "ruta": "src/app/features/system-configuration/components/form/",
+      "funcionalidades": [
+        "Formulario reactivo (ReactiveFormsModule)",
+        "Modo crear y modo editar en el mismo componente",
+        "Campos según CreateSyncConfigurationDto/UpdateSyncConfigurationDto",
+        "Validaciones del lado del cliente según las reglas definidas",
+        "Dropdown para seleccionar POS (posCode) - con opción NULL para configuración global",
+        "Campos numéricos con validación de rangos",
+        "Switches/Toggles para campos booleanos",
+        "Mostrar valores por defecto al crear",
+        "Deshabilitar campo 'posCode' al editar (no se puede cambiar)",
+        "Mensajes de error amigables para cada validación",
+        "Botones: Guardar, Cancelar",
+        "Mostrar loading mientras se guarda",
+        "Redireccionar a la lista después de guardar exitosamente"
+      ],
+      "grupos_de_campos": {
+        "identificacion": ["posCode", "configName", "description"],
+        "work_manager": ["workManagerEnabled", "syncIntervalMinutes"],
+        "reintentos": ["maxRetries", "retryDelayMinutes", "exponentialBackoff"],
+        "conectividad": ["connectivityCheckSeconds", "serverPingTimeoutSeconds"],
+        "batch": ["batchSize", "syncOnWifiOnly"],
+        "prioridad": ["priority", "isActive"]
+      }
+    },
+    "paso6_componente_detalle": {
+      "titulo": "Crear componente de detalle (opcional pero recomendado)",
+      "ruta": "src/app/features/system-configuration/components/detail/",
+      "funcionalidades": [
+        "Vista de solo lectura de una configuración",
+        "Mostrar todos los campos organizados por secciones",
+        "Mostrar información del POS asociado si existe",
+        "Badges para estado (Activo/Inactivo) y tipo (Global/Específica)",
+        "Botones: Editar, Volver, Eliminar",
+        "Mostrar fechas de creación y actualización"
+      ]
+    },
+    "paso7_routing": {
+      "titulo": "Configurar rutas",
+      "rutas": [
+        {
+          "path": "system-configuration",
+          "component": "ListComponent",
+          "descripcion": "Lista de configuraciones"
+        },
+        {
+          "path": "system-configuration/new",
+          "component": "FormComponent",
+          "descripcion": "Crear nueva configuración"
+        },
+        {
+          "path": "system-configuration/edit/:id",
+          "component": "FormComponent",
+          "descripcion": "Editar configuración existente"
+        },
+        {
+          "path": "system-configuration/detail/:id",
+          "component": "DetailComponent",
+          "descripcion": "Ver detalle de configuración"
+        }
+      ]
+    },
+    "paso8_estilos_ux": {
+      "titulo": "Consideraciones de UI/UX",
+      "recomendaciones": [
+        "Usar Material Design, PrimeNG, o el framework de UI que use el proyecto",
+        "Tablas responsivas con paginación",
+        "Loading spinners durante peticiones HTTP",
+        "Toasts/Snackbars para mensajes de éxito/error",
+        "Dialogs de confirmación para acciones destructivas",
+        "Validación en tiempo real en formularios",
+        "Deshabilitar botones mientras se procesa una petición",
+        "Iconos descriptivos para acciones (editar, eliminar, ver, etc.)",
+        "Badges de colores para estados (verde=activo, rojo=inactivo, azul=global, gris=específica)",
+        "Breadcrumbs para navegación"
+      ]
+    },
+    "paso9_manejo_errores": {
+      "titulo": "Implementar manejo de errores",
+      "casos": [
+        "Error 404: Configuración no encontrada",
+        "Error 400: Validación fallida (mostrar errores específicos del backend)",
+        "Error 409: Conflicto (ej. ya existe configuración para ese POS)",
+        "Error 500: Error del servidor",
+        "Sin conexión: Mostrar mensaje apropiado",
+        "Timeout: Implementar retry o mensaje claro"
+      ],
+      "implementacion": "Usar un interceptor global o manejo en cada componente"
+    },
+    "paso10_funcionalidades_extras": {
+      "titulo": "Funcionalidades adicionales opcionales",
+      "sugerencias": [
+        "Exportar lista a Excel/CSV",
+        "Clonar configuración existente",
+        "Historial de cambios (si el backend lo soporta)",
+        "Búsqueda avanzada con múltiples filtros",
+        "Ordenamiento de columnas en la tabla",
+        "Vista de tarjetas como alternativa a la tabla",
+        "Dashboard con estadísticas (total configs, activas, por tipo, etc.)",
+        "Validación en tiempo real si el POS existe al escribir posCode"
+      ]
+    }
+  },
+  "ejemplo_flujo_usuario": {
+    "crear_configuracion_global": [
+      "1. Usuario hace clic en 'Nueva Configuración'",
+      "2. Se abre el formulario vacío con valores por defecto",
+      "3. Usuario deja 'POS Code' vacío (NULL = global)",
+      "4. Completa nombre y otros parámetros",
+      "5. Hace clic en 'Guardar'",
+      "6. Sistema valida y llama a POST /systemconfiguration",
+      "7. Muestra mensaje de éxito y vuelve a la lista"
+    ],
+    "crear_configuracion_especifica": [
+      "1. Usuario hace clic en 'Nueva Configuración'",
+      "2. Selecciona un POS del dropdown",
+      "3. Completa los parámetros personalizados",
+      "4. Sistema valida que el POS existe y no tiene configuración",
+      "5. Guarda y retorna a la lista"
+    ],
+    "editar_configuracion": [
+      "1. Usuario hace clic en 'Editar' en una fila",
+      "2. Navega a /system-configuration/edit/:id",
+      "3. Formulario se carga con datos existentes",
+      "4. Campo 'posCode' está deshabilitado",
+      "5. Usuario modifica valores",
+      "6. Guarda cambios con PUT /systemconfiguration/{id}",
+      "7. Vuelve a la lista con mensaje de éxito"
+    ],
+    "eliminar_configuracion": [
+      "1. Usuario hace clic en 'Eliminar'",
+      "2. Sistema muestra confirmación",
+      "3. Si es configuración global, muestra error",
+      "4. Si es específica, ejecuta DELETE",
+      "5. Actualiza la lista"
+    ],
+    "toggle_estado": [
+      "1. Usuario hace clic en switch/toggle de 'Activo'",
+      "2. Sistema llama a PATCH /systemconfiguration/{id}/toggle",
+      "3. Actualiza el estado visualmente sin recargar toda la lista"
+    ]
+  },
+  "testing": {
+    "pruebas_recomendadas": [
+      "Servicios: Mock HttpClient y probar cada método",
+      "Componentes: Probar interacciones de usuario",
+      "Formularios: Validar que las reglas funcionen correctamente",
+      "Integración: Probar flujos completos de CRUD",
+      "E2E: Cypress o Playwright para flujos críticos"
+    ]
+  },
+  "notas_importantes": [
+    "El backend NO permite eliminar la configuración global (posCode = NULL)",
+    "Solo puede existir UNA configuración por POS (constraint UNIQUE)",
+    "El endpoint getByPosCode hace fallback automático a la configuración global si no existe una específica",
+    "Los campos updated_at se actualizan automáticamente en el backend mediante trigger",
+    "Considerar agregar paginación del lado del servidor si hay muchas configuraciones",
+    "El campo 'priority' determina qué configuración se usa cuando hay múltiples (mayor prioridad gana)"
+  ],
+  "dependencias_npm_sugeridas": [
+    "@angular/common/http (ya incluido en Angular 18)",
+    "@angular/forms (ReactiveFormsModule)",
+    "@angular/router",
+    "Librería de UI (Material, PrimeNG, etc.)",
+    "rxjs (ya incluido)"
+  ]
+}

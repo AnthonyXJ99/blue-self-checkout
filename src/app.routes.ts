@@ -8,6 +8,7 @@ import { GalleryComponent } from './app/pages/gallery/gallery.component';
 import { DevicesComponent } from './app/pages/devices/device/devices.component';
 import { CustomerComponent } from './app/pages/customer/customer.component';
 import { OrderComponent } from './app/pages/orders/order/order.component';
+import { SystemConfigurationComponent } from './app/pages/system-configuration/system-configuration.component';
 
 export const appRoutes: Routes = [
     {
@@ -22,7 +23,8 @@ export const appRoutes: Routes = [
             { path: 'devices', loadChildren: () => import('./app/pages/devices/devices.routes') },
             { path: 'gallery', component: GalleryComponent },
             { path: 'customer', component: CustomerComponent },
-            { path: 'order', component: OrderComponent}
+            { path: 'order', component: OrderComponent},
+            { path: 'system-configuration', component: SystemConfigurationComponent }
         ]
     },
     { path: 'landing', component: Landing },

@@ -11,7 +11,6 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
-import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { TagModule } from 'primeng/tag';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -46,7 +45,6 @@ import { Product } from '../product/model/product.model';
     InputTextModule,
     InputNumberModule,
     SelectModule,
-    AutoCompleteModule,
     TagModule,
     ToolbarModule,
     ConfirmDialogModule,
@@ -73,6 +71,7 @@ export class IngredientsComponent implements OnInit {
   // Products for selection
   sellableProducts = signal<Product[]>([]);
   nonSellableProducts = signal<Product[]>([]);
+  allProducts = signal<Product[]>([]); // Todos los productos
   selectedMainProduct = signal<Product | null>(null);
   availableComponents = signal<Product[]>([]);
 
@@ -83,9 +82,6 @@ export class IngredientsComponent implements OnInit {
   // Search terms
   productSearchTerm = signal<string>('');
   ingredientSearchTerm = signal<string>('');
-  
-  // Autocomplete filtered options
-  filteredIngredientOptions: SelectOption[] = [];
 
   // Filter variables
   selectedEnabledFilter: string = '';
@@ -117,12 +113,38 @@ export class IngredientsComponent implements OnInit {
   filteredNonSellableProducts = computed(() => {
     const products = this.nonSellableProducts();
     const searchTerm = this.ingredientSearchTerm().toLowerCase();
-    
+
     if (!searchTerm) {
       return products;
     }
-    
-    return products.filter(product => 
+
+    return products.filter(product =>
+      product.itemName.toLowerCase().includes(searchTerm) ||
+      product.itemCode.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  // Computed signal: Productos disponibles para componentes según si es Combo o no
+  availableProductsForComponents = computed(() => {
+    const mainProduct = this.selectedMainProduct();
+    const searchTerm = this.ingredientSearchTerm().toLowerCase();
+
+    // Si el producto principal es un Combo (isCombo = 'Y'), mostrar productos VENDIBLES
+    // Si NO es un Combo, mostrar productos NO VENDIBLES (ingredientes normales)
+    let products: Product[];
+
+    if (mainProduct?.isCombo === 'Y') {
+      products = this.sellableProducts();
+    } else {
+      products = this.nonSellableProducts();
+    }
+
+    // Aplicar filtro de búsqueda
+    if (!searchTerm) {
+      return products;
+    }
+
+    return products.filter(product =>
       product.itemName.toLowerCase().includes(searchTerm) ||
       product.itemCode.toLowerCase().includes(searchTerm)
     );
@@ -160,12 +182,13 @@ export class IngredientsComponent implements OnInit {
     this.productsService.getProductsBySellItem(true).subscribe({
       next: (products) => {
         this.sellableProducts.set(products);
+        this.updateAllProducts();
       },
       error: () => {
-        this.messageService.add({ 
-          severity: 'error', 
-          summary: 'Error', 
-          detail: 'Error al cargar productos vendibles' 
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al cargar productos vendibles'
         });
       }
     });
@@ -174,16 +197,22 @@ export class IngredientsComponent implements OnInit {
     this.productsService.getProductsBySellItem(false).subscribe({
       next: (products) => {
         this.nonSellableProducts.set(products);
-        this.availableComponents.set(products);
+        this.updateAllProducts();
       },
       error: () => {
-        this.messageService.add({ 
-          severity: 'error', 
-          summary: 'Error', 
-          detail: 'Error al cargar productos componentes' 
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al cargar productos componentes'
         });
       }
     });
+  }
+
+  // Actualizar lista combinada de todos los productos
+  private updateAllProducts() {
+    const combined = [...this.sellableProducts(), ...this.nonSellableProducts()];
+    this.allProducts.set(combined);
   }
 
   // ============================================
@@ -220,8 +249,8 @@ export class IngredientsComponent implements OnInit {
   }
 
   selectMainProduct(product: Product) {
-    this.selectedMainProduct.set(product);
-    
+    this.selectedMainProduct.set(product); // Guardamos el producto completo con isCombo
+
     // Crear ProductTree basado en el producto seleccionado
     const newIngredient: ProductTree = {
       itemCode: product.itemCode,
@@ -231,7 +260,7 @@ export class IngredientsComponent implements OnInit {
       dataSource: 'N', // Default value
       items1: []
     };
-    
+
     this.ingredient.set(newIngredient);
     this.productSelectionDialog = false;
     this.ingredientDialog = true;
@@ -241,6 +270,13 @@ export class IngredientsComponent implements OnInit {
     this.ingredient.set({ ...ingredient });
     this.components.set([...ingredient.items1]);
     this.submitted.set(false);
+
+    // Buscar el producto principal para determinar si es combo
+    const mainProduct = this.allProducts().find(p => p.itemCode === ingredient.itemCode);
+    if (mainProduct) {
+      this.selectedMainProduct.set(mainProduct);
+    }
+
     this.ingredientDialog = true;
   }
 
@@ -248,6 +284,13 @@ export class IngredientsComponent implements OnInit {
     this.ingredient.set({ ...ingredient });
     this.components.set([...ingredient.items1]);
     this.submitted.set(false);
+
+    // Buscar el producto principal para determinar si es combo
+    const mainProduct = this.allProducts().find(p => p.itemCode === ingredient.itemCode);
+    if (mainProduct) {
+      this.selectedMainProduct.set(mainProduct);
+    }
+
     this.ingredientDialog = true;
   }
 
@@ -356,7 +399,8 @@ export class IngredientsComponent implements OnInit {
           quantity: item.quantity,
           isCustomizable: item.isCustomizable || 'N',
           imageUrl: item.imageUrl,
-          productTreeItemCode: item.productTreeItemCode
+          productTreeItemCode: item.productTreeItemCode,
+          comboItemCode: item.comboItemCode || ''
         }))
       };
 
@@ -397,7 +441,8 @@ export class IngredientsComponent implements OnInit {
           quantity: item.quantity,
           imageUrl: item.imageUrl,
           isCustomizable: item.isCustomizable || 'N',
-          productTreeItemCode: item.productTreeItemCode
+          productTreeItemCode: item.productTreeItemCode,
+          comboItemCode: item.comboItemCode || ''
         }))
       };
       console.log(createData);
@@ -436,38 +481,60 @@ export class IngredientsComponent implements OnInit {
   // ============================================
 
   addIngredient() {
-    // Validar que hay productos no vendibles disponibles para agregar como ingredientes
-    const availableProducts = this.nonSellableProducts().filter(product => 
+    const mainProduct = this.selectedMainProduct();
+    const isCombo = mainProduct?.isCombo === 'Y';
+
+    // Validar que hay productos disponibles para agregar (vendibles si es Combo, no vendibles si no lo es)
+    const availableProducts = this.availableProductsForComponents().filter(product =>
       !this.isProductAlreadySelected(product.itemCode)
     );
 
     if (availableProducts.length === 0) {
-      if (this.nonSellableProducts().length === 0) {
-        this.messageService.add({ 
-          severity: 'warn', 
-          summary: 'Sin Productos Disponibles', 
-          detail: 'No hay productos no vendibles registrados para usar como ingredientes. Vaya a la sección de Productos y registre productos con "Se Vende = No".',
-          life: 5000
-        });
+      if (isCombo) {
+        if (this.sellableProducts().length === 0) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Sin Productos Disponibles',
+            detail: 'No hay productos vendibles registrados para usar en el combo. Vaya a la sección de Productos y registre productos con "Se Vende = Sí".',
+            life: 5000
+          });
+        } else {
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Todos los Productos Utilizados',
+            detail: 'Ya ha agregado todos los productos vendibles disponibles en este combo.',
+            life: 4000
+          });
+        }
       } else {
-        this.messageService.add({ 
-          severity: 'info', 
-          summary: 'Todos los Ingredientes Utilizados', 
-          detail: 'Ya ha agregado todos los productos no vendibles disponibles como ingredientes en esta receta.',
-          life: 4000
-        });
+        if (this.nonSellableProducts().length === 0) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Sin Productos Disponibles',
+            detail: 'No hay productos no vendibles registrados para usar como ingredientes. Vaya a la sección de Productos y registre productos con "Se Vende = No".',
+            life: 5000
+          });
+        } else {
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Todos los Ingredientes Utilizados',
+            detail: 'Ya ha agregado todos los productos no vendibles disponibles como ingredientes en esta receta.',
+            life: 4000
+          });
+        }
       }
       return;
     }
 
-    // Crear un nuevo slot para ingrediente
+    // Crear un nuevo slot para ingrediente/componente
     const newIngredient: ProductTreeItem = {
       itemCode: '',
       itemName: '',
       quantity: 1,
       imageUrl: '',
       isCustomizable: 'N', // Valor por defecto
-      productTreeItemCode: this.ingredient()?.itemCode || ''
+      productTreeItemCode: this.ingredient()?.itemCode || '',
+      comboItemCode: '' // Nuevo campo requerido
     };
     // Agregar el nuevo ingrediente al inicio del array para que aparezca arriba
     this.components.set([newIngredient, ...this.components()]);
@@ -482,7 +549,8 @@ export class IngredientsComponent implements OnInit {
       quantity: currentIngredients[ingredientIndex]?.quantity || 1,
       imageUrl: this.extractImagePath(product.imageUrl || ''),
       isCustomizable: currentIngredients[ingredientIndex]?.isCustomizable || 'N', // Mantener valor actual o usar 'N' por defecto
-      productTreeItemCode: this.ingredient()?.itemCode || ''
+      productTreeItemCode: this.ingredient()?.itemCode || '',
+      comboItemCode: currentIngredients[ingredientIndex]?.comboItemCode || '' // Mantener o inicializar
     };
     this.components.set(currentIngredients);
   }
@@ -513,10 +581,12 @@ export class IngredientsComponent implements OnInit {
     return this.components().some(ingredient => ingredient.itemCode === productItemCode);
   }
 
-  // Obtener productos no vendibles disponibles (excluyendo los ya seleccionados)
+  // Obtener productos disponibles para ingredientes/componentes (según si es Combo o no)
   getAvailableIngredientsForSlot(currentSlotIndex: number): Product[] {
     const currentSlotItemCode = this.components()[currentSlotIndex]?.itemCode;
-    const availableProducts = this.filteredNonSellableProducts().filter(product => 
+
+    // Usar el computed signal que ya determina si mostrar vendibles o no vendibles
+    const availableProducts = this.availableProductsForComponents().filter(product =>
       product.itemCode === currentSlotItemCode || // Permitir el producto actual
       !this.isProductAlreadySelected(product.itemCode) // Excluir productos ya seleccionados
     );
@@ -713,7 +783,7 @@ export class IngredientsComponent implements OnInit {
   onIngredientProductSelect(ingredientIndex: number, itemCodeOrOption: string | any) {
     // Manejar tanto string como objeto SelectOption
     let itemCode: string;
-    
+
     if (typeof itemCodeOrOption === 'string') {
       itemCode = itemCodeOrOption;
     } else if (itemCodeOrOption && typeof itemCodeOrOption === 'object' && 'value' in itemCodeOrOption) {
@@ -723,8 +793,9 @@ export class IngredientsComponent implements OnInit {
       // No es un formato válido
       return;
     }
-    
-    const product = this.nonSellableProducts().find(p => p.itemCode === itemCode);
+
+    // Buscar en la lista de productos disponibles según si es Combo o no
+    const product = this.availableProductsForComponents().find(p => p.itemCode === itemCode);
     if (product) {
       this.selectIngredientProduct(ingredientIndex, product);
     }
@@ -738,20 +809,10 @@ export class IngredientsComponent implements OnInit {
       value: product.itemCode
     }));
   }
-  
-  // Método para filtrar ingredientes en el autocomplete
-  filterIngredients(event: AutoCompleteCompleteEvent, slotIndex: number) {
-    const query = event.query.toLowerCase();
-    const options = this.getIngredientOptionsForSlot(slotIndex);
-    
-    this.filteredIngredientOptions = options.filter(option => 
-      option.label.toLowerCase().includes(query)
-    );
-  }
 
   // Obtener información del producto por código
   getProductInfo(itemCode: string): Product | undefined {
-    return this.nonSellableProducts().find(p => p.itemCode === itemCode);
+    return this.allProducts().find(p => p.itemCode === itemCode);
   }
 
   // Calcular estadísticas de la receta

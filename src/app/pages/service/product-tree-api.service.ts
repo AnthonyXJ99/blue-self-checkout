@@ -279,7 +279,8 @@ export class ProductTreeApiService {
       itemName: '',
       quantity: 1,
       imageUrl: '',
-      productTreeItemCode: ''
+      productTreeItemCode: '',
+      comboItemCode: ''  // NUEVO: Campo requerido
     };
   }
 

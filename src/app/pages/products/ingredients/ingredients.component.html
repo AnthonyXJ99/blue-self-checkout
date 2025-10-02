@@ -466,24 +466,24 @@
                                 <!-- Selección de producto -->
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div class="md:col-span-2">
-                                        <label class="block font-medium mb-2">🥬 Seleccionar Ingrediente</label>
-                                        <p-autocomplete 
-                                            [ngModel]="ingredient.itemCode"
-                                            (completeMethod)="filterIngredients($event, i)"
-                                            (onSelect)="onIngredientProductSelect(i, $event)"
+                                        <label class="block font-medium mb-2">🥬 Seleccionar Ingrediente/Producto</label>
+                                        <p-select
+                                            [(ngModel)]="ingredient.itemCode"
                                             (ngModelChange)="onIngredientProductSelect(i, $event)"
-                                            [suggestions]="filteredIngredientOptions"
+                                            [options]="getIngredientOptionsForSlot(i)"
                                             optionLabel="label"
                                             optionValue="value"
-                                            placeholder="Buscar ingrediente..."
-                                            [dropdown]="true"
-                                            appendTo="body"
+                                            placeholder="Seleccionar producto..."
+                                            [filter]="true"
+                                            filterPlaceholder="Buscar producto..."
                                             [disabled]="getIngredientOptionsForSlot(i).length === 0"
-                                            [style]="{'width':'100%'}">
-                                        </p-autocomplete>
+                                            appendTo="body"
+                                            fluid>
+                                        </p-select>
                                         <small class="text-muted-color">
                                             <i class="pi pi-info-circle mr-1"></i>
-                                            Solo productos no vendibles. Cada ingrediente puede usarse una vez.
+                                            <span *ngIf="selectedMainProduct()?.isCombo === 'Y'">Productos vendibles para el combo</span>
+                                            <span *ngIf="selectedMainProduct()?.isCombo !== 'Y'">Solo productos no vendibles (ingredientes)</span>
                                         </small>
                                     </div>
                                     <div>

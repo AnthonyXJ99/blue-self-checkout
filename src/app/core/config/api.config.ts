@@ -20,6 +20,8 @@ export const API_CONFIG = {
     CATEGORIES: 'api/categories',
     PRODUCT_TREES: 'api/producttrees',
     ACCOMPANIMENTS: 'api/accompaniments',
+    COMBOS: 'api/Combos',
+    SIZES: 'api/products/sizes',
     
     // Devices
     DEVICES: 'api/devices',
@@ -30,7 +32,10 @@ export const API_CONFIG = {
 
     //Order
     ORDERS: 'api/order',
-    
+
+    // System Configuration
+    SYSTEM_CONFIGURATION: 'api/systemconfiguration',
+
     // Auth
     AUTH: 'api/auth',
     LOGIN: 'api/auth/login',

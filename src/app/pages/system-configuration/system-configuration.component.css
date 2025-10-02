@@ -1,0 +1,33 @@
+/* Estilos personalizados para System Configuration Component */
+
+:host ::ng-deep {
+  /* Mejorar visualización de tabs */
+  .p-tabview-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Estilo para las tarjetas de estadísticas */
+  .card {
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Mejorar espaciado en formularios */
+  .p-inputnumber,
+  .p-inputtext,
+  .p-select {
+    width: 100%;
+  }
+
+  /* Estilo para badges de prioridad */
+  .pi-star-fill.text-warning {
+    color: #f59e0b;
+  }
+
+  .pi-star-fill.text-muted-color {
+    color: #9ca3af;
+  }
+}

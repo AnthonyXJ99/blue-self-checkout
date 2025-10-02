@@ -121,7 +121,7 @@
                 Rating
                 <p-sortIcon field="rating" />
             </th>
-            <th style="min-width: 8rem">Combo</th>
+            <th style="min-width: 12rem">Tipo</th>
             <th style="min-width: 10rem">Estado</th>
             <th style="min-width: 12rem"></th>
         </tr>
@@ -187,12 +187,20 @@
                     <span class="text-sm font-medium">{{ product.rating | number:'1.1-1' }}</span>
                 </div>
             </td>
-            <td style="min-width: 8rem">
-                <div class="flex justify-center">
+            <td style="min-width: 12rem">
+                <div class="flex flex-col gap-1">
+                    <!-- Tipo de Producto -->
                     <p-tag
-                        [value]="product.isCombo === 'Y' ? 'Combo' : 'Simple'"
-                        [severity]="product.isCombo === 'Y' ? 'info' : 'secondary'"
-                        [icon]="product.isCombo === 'Y' ? 'pi pi-th-large' : 'pi pi-circle'" />
+                        [value]="getProductTypeLabel(product.u_ProductType || 'S')"
+                        [severity]="getProductTypeSeverity(product.u_ProductType || 'S')"
+                        [icon]="getProductTypeIcon(product.u_ProductType || 'S')" />
+
+                    <!-- Indicador si tiene variantes -->
+                    <p-chip
+                        *ngIf="product.u_HasVariants === 'Y'"
+                        label="Con Variantes"
+                        icon="pi pi-clone"
+                        styleClass="p-chip-sm bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200" />
                 </div>
             </td>
             <td style="min-width: 10rem">
@@ -234,207 +242,221 @@
             <p-tabview class="h-full">
                 <!-- Pestaña Información Básica -->
                 <p-tabpanel header="Información Básica">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Columna Izquierda -->
-                        <div class="flex flex-col gap-4">
-                            <!-- Códigos -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="itemCode" class="block font-bold mb-3">Código del Producto *</label>
-                                    <input type="text" pInputText id="itemCode" [(ngModel)]="product()!.itemCode" required autofocus fluid />
-                                    <small class="text-red-500" *ngIf="submitted() && !product()!.itemCode">El código es requerido.</small>
-                                    <small class="text-muted-color">Máximo 50 caracteres</small>
-                                </div>
-                                <div>
-                                    <label for="eanCode" class="block font-bold mb-3">Código EAN/Barras</label>
-                                    <input type="text" pInputText id="eanCode" [(ngModel)]="product()!.eanCode" fluid />
-                                    <small class="text-muted-color">Código de barras del producto</small>
-                                </div>
-                            </div>
-                            
-                            <!-- Nombres -->
-                            <div>
-                                <label for="itemName" class="block font-bold mb-3">Nombre del Producto *</label>
-                                <input type="text" pInputText id="itemName" [(ngModel)]="product()!.itemName" required fluid />
-                                <small class="text-red-500" *ngIf="submitted() && !product()!.itemName">El nombre es requerido.</small>
-                                <small class="text-muted-color">Máximo 150 caracteres</small>
-                            </div>
-                            
-                            <div>
-                                <label for="frgnName" class="block font-bold mb-3">Nombre en Extranjero</label>
-                                <input type="text" pInputText id="frgnName" [(ngModel)]="product()!.frgnName" fluid />
-                                <small class="text-muted-color">Nombre en otro idioma</small>
-                            </div>
-                            
-                            <!-- Precios -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="price" class="block font-bold mb-3">Precio *</label>
-                                    <p-inputnumber id="price" [(ngModel)]="product()!.price" mode="currency" currency="USD" locale="en-US" [min]="0" required fluid />
-                                    <small class="text-red-500" *ngIf="submitted() && !product()!.price">El precio es requerido.</small>
-                                </div>
-                                <div>
-                                    <label for="discount" class="block font-bold mb-3">Descuento (%)</label>
-                                    <p-inputnumber id="discount" [(ngModel)]="product()!.discount" [min]="0" [max]="100" fluid />
-                                    <small class="text-muted-color">Porcentaje de descuento</small>
-                                </div>
-                            </div>
+                    <!-- Códigos e Identificación -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label for="itemCode" class="block font-bold mb-2">Código del Producto *</label>
+                            <input type="text" pInputText id="itemCode" [(ngModel)]="product()!.itemCode" required autofocus fluid />
+                            <small class="text-red-500" *ngIf="submitted() && !product()!.itemCode">El código es requerido.</small>
+                        </div>
+                        <div>
+                            <label for="eanCode" class="block font-bold mb-2">Código EAN/Barras</label>
+                            <input type="text" pInputText id="eanCode" [(ngModel)]="product()!.eanCode" fluid />
+                        </div>
+                        <div>
+                            <label for="rating" class="block font-bold mb-2">Rating</label>
+                            <p-rating [(ngModel)]="product()!.rating" [stars]="5" />
+                        </div>
+                    </div>
 
-                            <!-- Preview de precios -->
-                            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="product()!.price > 0">
-                                <h6 class="font-semibold mb-2">Preview de Precios</h6>
-                                <div class="flex justify-between items-center">
-                                    <span>Precio original:</span>
-                                    <span class="font-semibold">{{ formatPrice(product()!.price) }}</span>
+                    <!-- Nombres -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="itemName" class="block font-bold mb-2">Nombre del Producto *</label>
+                            <input type="text" pInputText id="itemName" [(ngModel)]="product()!.itemName" required fluid />
+                            <small class="text-red-500" *ngIf="submitted() && !product()!.itemName">El nombre es requerido.</small>
+                        </div>
+                        <div>
+                            <label for="frgnName" class="block font-bold mb-2">Nombre en Extranjero</label>
+                            <input type="text" pInputText id="frgnName" [(ngModel)]="product()!.frgnName" fluid />
+                        </div>
+                    </div>
+
+                    <!-- Categorización, Precios y Tiempo -->
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+                        <div>
+                            <label for="categoryItemCode" class="block font-bold mb-2">Categoría</label>
+                            <p-select
+                                id="categoryItemCode"
+                                [options]="getProductCategoryOptions()"
+                                [(ngModel)]="product()!.categoryItemCode"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar..."
+                                fluid>
+                            </p-select>
+                        </div>
+                        <div>
+                            <label for="groupItemCode" class="block font-bold mb-2">Grupo</label>
+                            <p-select
+                                id="groupItemCode"
+                                [options]="getProductGroupOptions()"
+                                [(ngModel)]="product()!.groupItemCode"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar..."
+                                fluid>
+                            </p-select>
+                        </div>
+                        <div>
+                            <label for="price" class="block font-bold mb-2">Precio *</label>
+                            <p-inputnumber id="price" [(ngModel)]="product()!.price" mode="currency" currency="USD" locale="en-US" [min]="0" required fluid />
+                            <small class="text-red-500" *ngIf="submitted() && !product()!.price">Requerido.</small>
+                        </div>
+                        <div>
+                            <label for="discount" class="block font-bold mb-2">Descuento (%)</label>
+                            <p-inputnumber id="discount" [(ngModel)]="product()!.discount" [min]="0" [max]="100" fluid />
+                        </div>
+                        <div>
+                            <label for="waitingTime" class="block font-bold mb-2">Tiempo (min)</label>
+                            <input type="text" pInputText id="waitingTime" [(ngModel)]="product()!.waitingTime" placeholder="15" fluid />
+                        </div>
+                    </div>
+
+                    <!-- Estados y Tipo de Producto -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                        <!-- Estados del Producto -->
+                        <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded border border-surface-200 dark:border-surface-700">
+                            <h6 class="font-semibold mb-3 flex items-center gap-2">
+                                <i class="pi pi-check-circle text-green-600"></i>
+                                <span>Estados del Producto</span>
+                            </h6>
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center justify-between p-2 rounded hover:bg-surface-100 dark:hover:bg-surface-700">
+                                    <div class="flex items-center gap-2">
+                                        <p-checkbox
+                                            id="sellItem"
+                                            [(ngModel)]="product()!.sellItem"
+                                            [binary]="true"
+                                            [trueValue]="'Y'"
+                                            [falseValue]="'N'"
+                                            required>
+                                        </p-checkbox>
+                                        <label for="sellItem" class="cursor-pointer font-medium">Se Vende</label>
+                                    </div>
+                                    <small class="text-muted-color">Producto se puede vender</small>
                                 </div>
-                                <div class="flex justify-between items-center" *ngIf="hasDiscount(product()!)">
-                                    <span>Descuento ({{ product()!.discount }}%):</span>
-                                    <span class="text-red-500">-{{ formatPrice(product()!.price * (product()!.discount || 0) / 100) }}</span>
+                                <div class="flex items-center justify-between p-2 rounded hover:bg-surface-100 dark:hover:bg-surface-700">
+                                    <div class="flex items-center gap-2">
+                                        <p-checkbox
+                                            id="available"
+                                            [(ngModel)]="product()!.available"
+                                            [binary]="true"
+                                            [trueValue]="'Y'"
+                                            [falseValue]="'N'"
+                                            required>
+                                        </p-checkbox>
+                                        <label for="available" class="cursor-pointer font-medium">Disponible</label>
+                                    </div>
+                                    <small class="text-muted-color">Hay stock disponible</small>
                                 </div>
-                                <div class="flex justify-between items-center border-t pt-2 mt-2">
-                                    <span class="font-bold">Precio final:</span>
-                                    <span class="font-bold text-lg text-primary">{{ formatPrice(calculateDiscountedPrice(product()!)) }}</span>
+                                <div class="flex items-center justify-between p-2 rounded hover:bg-surface-100 dark:hover:bg-surface-700">
+                                    <div class="flex items-center gap-2">
+                                        <p-checkbox
+                                            id="enabled"
+                                            [(ngModel)]="product()!.enabled"
+                                            [binary]="true"
+                                            [trueValue]="'Y'"
+                                            [falseValue]="'N'"
+                                            required>
+                                        </p-checkbox>
+                                        <label for="enabled" class="cursor-pointer font-medium">Activo</label>
+                                    </div>
+                                    <small class="text-muted-color">Producto activo en sistema</small>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Columna Derecha -->
-                        <div class="flex flex-col gap-4">
-                            <!-- Categorización -->
-                            <div class="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label for="categoryItemCode" class="block font-bold mb-3">Categoría</label>
-                                    <p-select 
-                                        id="categoryItemCode"
-                                        [options]="getProductCategoryOptions()" 
-                                        [(ngModel)]="product()!.categoryItemCode"
-                                        optionLabel="label" 
-                                        optionValue="value"
-                                        placeholder="Seleccionar categoría"
-                                        variant="filled"
-                                        fluid>
-                                    </p-select>
-                                </div>
-                                
-                                <div>
-                                    <label for="groupItemCode" class="block font-bold mb-3">Grupo</label>
-                                    <p-select 
-                                        id="groupItemCode"
-                                        [options]="getProductGroupOptions()" 
-                                        [(ngModel)]="product()!.groupItemCode"
-                                        optionLabel="label" 
-                                        optionValue="value"
-                                        placeholder="Seleccionar grupo"
-                                        variant="filled"
-                                        fluid>
-                                    </p-select>
-                                </div>
-                            </div>
-                            
-                            <!-- Tiempo y Rating -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="waitingTime" class="block font-bold mb-3">Tiempo de Espera (min)</label>
-                                    <input type="text" pInputText id="waitingTime" [(ngModel)]="product()!.waitingTime" placeholder="5" fluid />
-                                </div>
-                                <div>
-                                    <label for="rating" class="block font-bold mb-3">Rating</label>
-                                    <p-rating [(ngModel)]="product()!.rating" [stars]="5" />
-                                </div>
-                            </div>
-                            
-                            <!-- Estados -->
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div>
-                                    <label for="sellItem" class="block font-bold mb-3">Se Vende *</label>
-                                    <p-checkbox
-                                        id="sellItem"
-                                        [(ngModel)]="product()!.sellItem"
-                                        [binary]="true"
-                                        [trueValue]="'Y'"
-                                        [falseValue]="'N'"
-                                        label="Sí"
-                                        required>
-                                    </p-checkbox>
-                                    <small class="text-red-500" *ngIf="submitted() && !product()!.sellItem">Requerido.</small>
-                                </div>
-                                <div>
-                                    <label for="available" class="block font-bold mb-3">Disponible *</label>
-                                    <p-checkbox
-                                        id="available"
-                                        [(ngModel)]="product()!.available"
-                                        [binary]="true"
-                                        [trueValue]="'Y'"
-                                        [falseValue]="'N'"
-                                        label="Sí"
-                                        required>
-                                    </p-checkbox>
-                                    <small class="text-red-500" *ngIf="submitted() && !product()!.available">Requerido.</small>
-                                </div>
-                                <div>
-                                    <label for="enabled" class="block font-bold mb-3">Activo *</label>
-                                    <p-checkbox
-                                        id="enabled"
-                                        [(ngModel)]="product()!.enabled"
-                                        [binary]="true"
-                                        [trueValue]="'Y'"
-                                        [falseValue]="'N'"
-                                        label="Sí"
-                                        required>
-                                    </p-checkbox>
-                                    <small class="text-red-500" *ngIf="submitted() && !product()!.enabled">Requerido.</small>
-                                </div>
-                                <div>
-                                    <label for="isCombo" class="block font-bold mb-3">Es Combo</label>
-                                    <p-checkbox
-                                        id="isCombo"
-                                        [(ngModel)]="product()!.isCombo"
-                                        [binary]="true"
-                                        [trueValue]="'Y'"
-                                        [falseValue]="'N'"
-                                        label="Sí">
-                                    </p-checkbox>
-                                    <small class="text-muted-color">Marcar si es un producto combo</small>
-                                </div>
-                            </div>
 
-                            <!-- Estado general del producto -->
-                            <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
-                                <h6 class="font-semibold mb-2">Estado del Producto</h6>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="font-medium">Estado general:</span>
-                                    <p-tag [value]="getOverallStatusLabel(product()!)" [severity]="getOverallStatusSeverity(product()!)" />
+                        <!-- Tipo de Producto -->
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded border border-blue-200 dark:border-blue-800">
+                            <h6 class="font-semibold mb-3 flex items-center gap-2">
+                                <i class="pi pi-tags text-blue-600"></i>
+                                <span>Tipo de Producto</span>
+                            </h6>
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center justify-between p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                    <div class="flex items-center gap-2">
+                                        <p-checkbox
+                                            id="isCombo"
+                                            [(ngModel)]="product()!.isCombo"
+                                            [binary]="true"
+                                            [trueValue]="'Y'"
+                                            [falseValue]="'N'"
+                                            (onChange)="onComboChange()">
+                                        </p-checkbox>
+                                        <label for="isCombo" class="cursor-pointer font-medium">
+                                            <i class="pi pi-th-large text-orange-600 mr-1"></i>Es Combo
+                                        </label>
+                                    </div>
+                                    <small class="text-muted-color">Opciones configurables</small>
                                 </div>
-                                <div class="grid grid-cols-3 gap-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span>Se vende:</span>
-                                        <p-tag [value]="getSellItemLabel(product()!.sellItem)" [severity]="getSeverity(product()!.sellItem)" />
+                                <div class="flex items-center justify-between p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                    <div class="flex items-center gap-2">
+                                        <p-checkbox
+                                            id="u_HasVariants"
+                                            [(ngModel)]="product()!.u_HasVariants"
+                                            [binary]="true"
+                                            [trueValue]="'Y'"
+                                            [falseValue]="'N'"
+                                            (onChange)="onHasVariantsChange()"
+                                            [disabled]="product()!.isCombo === 'Y'">
+                                        </p-checkbox>
+                                        <label for="u_HasVariants" class="cursor-pointer font-medium" [class.text-muted-color]="product()!.isCombo === 'Y'">
+                                            <i class="pi pi-clone text-blue-600 mr-1"></i>Tiene Variantes
+                                        </label>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span>Disponible:</span>
-                                        <p-tag [value]="getAvailableLabel(product()!.available)" [severity]="getSeverity(product()!.available)" />
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span>Habilitado:</span>
-                                        <p-tag [value]="getEnabledLabel(product()!.enabled)" [severity]="getSeverity(product()!.enabled)" />
+                                    <small class="text-muted-color">Tamaños, colores, etc.</small>
+                                </div>
+                                <div class="mt-1 p-2 bg-blue-100 dark:bg-blue-900/40 rounded">
+                                    <div class="flex items-center gap-2 text-sm">
+                                        <i class="pi pi-info-circle text-blue-600"></i>
+                                        <span>
+                                            <strong>Tipo actual:</strong>
+                                            <span *ngIf="product()!.isCombo !== 'Y' && product()!.u_HasVariants !== 'Y'"> Simple</span>
+                                            <span *ngIf="product()!.isCombo === 'Y'" class="text-orange-600 font-semibold"> Combo</span>
+                                            <span *ngIf="product()!.u_HasVariants === 'Y'" class="text-blue-600 font-semibold"> Variable</span>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Descripciones -->
-                    <div class="mt-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="description" class="block font-bold mb-3">Descripción</label>
-                                <textarea id="description" pTextarea [(ngModel)]="product()!.description" rows="4" fluid placeholder="Descripción detallada del producto"></textarea>
-                                <small class="text-muted-color">Máximo 255 caracteres</small>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="description" class="block font-bold mb-2">Descripción</label>
+                            <textarea id="description" pTextarea [(ngModel)]="product()!.description" rows="3" fluid placeholder="Descripción del producto"></textarea>
+                        </div>
+                        <div>
+                            <label for="frgnDescription" class="block font-bold mb-2">Descripción en Extranjero</label>
+                            <textarea id="frgnDescription" pTextarea [(ngModel)]="product()!.frgnDescription" rows="3" fluid placeholder="Foreign description"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Preview de Precios (Leyenda) -->
+                    <div *ngIf="product()!.price > 0" class="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-primary-200 dark:border-primary-800">
+                        <div class="flex items-center justify-between flex-wrap gap-4">
+                            <div class="flex items-center gap-3">
+                                <i class="pi pi-money-bill text-primary text-2xl"></i>
+                                <div>
+                                    <p class="text-sm text-muted-color mb-1">Precio Base</p>
+                                    <p class="text-xl font-bold">{{ formatPrice(product()!.price) }}</p>
+                                </div>
                             </div>
-                            <div>
-                                <label for="frgnDescription" class="block font-bold mb-3">Descripción en Extranjero</label>
-                                <textarea id="frgnDescription" pTextarea [(ngModel)]="product()!.frgnDescription" rows="4" fluid placeholder="Descripción en otro idioma"></textarea>
-                                <small class="text-muted-color">Máximo 255 caracteres</small>
+                            <div *ngIf="hasDiscount(product()!)" class="flex items-center gap-3">
+                                <i class="pi pi-percentage text-green-600 text-2xl"></i>
+                                <div>
+                                    <p class="text-sm text-muted-color mb-1">Descuento ({{ product()!.discount }}%)</p>
+                                    <p class="text-xl font-bold text-green-600">-{{ formatPrice(product()!.price * (product()!.discount || 0) / 100) }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="pi pi-tag text-primary text-2xl"></i>
+                                <div>
+                                    <p class="text-sm text-muted-color mb-1">Precio Final</p>
+                                    <p class="text-2xl font-bold text-primary">{{ formatPrice(calculateDiscountedPrice(product()!)) }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -469,6 +491,7 @@
                         </div>
                     </div>
                 </p-tabpanel>
+                
                 
             </p-tabview>
         </div>

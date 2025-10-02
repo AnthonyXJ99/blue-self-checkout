@@ -12,6 +12,7 @@ export interface ProductTreeItem {
   imageUrl?: string;
   isCustomizable?: string;
   productTreeItemCode: string;
+  comboItemCode: string;  // NUEVO: Requerido por el backend
 }
 
 /**
@@ -60,6 +61,7 @@ export interface ProductTreeItemCreateRequest {
   imageUrl?: string;
   isCustomizable: string;  // Y/N
   productTreeItemCode: string;
+  comboItemCode: string;  // NUEVO: Requerido por el backend
 }
 
 /**
@@ -72,6 +74,7 @@ export interface ProductTreeItemUpdateRequest {
   imageUrl?: string;
   isCustomizable: string;
   productTreeItemCode?: string;
+  comboItemCode?: string;  // NUEVO: Opcional para actualización
 }
 
 /**
