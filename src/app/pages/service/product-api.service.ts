@@ -86,6 +86,22 @@ import { ApiResponse } from "../../core/model/api-response.model";
     getProductsBySellItem(sellable: boolean): Observable<Product[]> {
       return this.apiService.get<Product[]>(`${this.endpoint}/sellable/${sellable}`);
     }
+
+    /**
+     * Obtiene lista de productos padre (u_HasVariants='Y')
+     * GET /api/Products/parents
+     */
+    getParentProducts(): Observable<Product[]> {
+      return this.apiService.get<Product[]>(`${this.endpoint}/parents`);
+    }
+
+    /**
+     * Obtiene todas las variantes de un producto padre
+     * GET /api/Products/{productCode}/variants
+     */
+    getProductVariants(productCode: string): Observable<Product[]> {
+      return this.apiService.get<Product[]>(`${this.endpoint}/${productCode}/variants`);
+    }
   
     // ===== MÉTODOS DE BÚSQUEDA Y FILTRADO =====
   
@@ -168,64 +184,74 @@ import { ApiResponse } from "../../core/model/api-response.model";
      */
     validateProductData(product: Partial<ProductCreateRequest>): { isValid: boolean; errors: string[] } {
       const errors: string[] = [];
-  
+
+      // ⚠️ VALIDACIÓN CRÍTICA: u_HasVariants y u_IsVariant son mutuamente excluyentes
+      if (product.u_HasVariants === 'Y' && product.u_IsVariant === 'Y') {
+        errors.push('Un producto no puede tener variantes (u_HasVariants) y ser una variante (u_IsVariant) al mismo tiempo. Debe elegir solo una opción.');
+      }
+
+      // Si es variante, debe tener padre
+      if (product.u_IsVariant === 'Y' && !product.u_ParentItem?.trim()) {
+        errors.push('Si el producto es una variante (u_IsVariant=Y), debe especificar el producto padre (u_ParentItem).');
+      }
+
       // Validar código del producto
       if (!product.itemCode?.trim()) {
         errors.push('El código del producto es requerido');
       } else if (product.itemCode.length > 50) {
         errors.push('El código del producto no puede exceder 50 caracteres');
       }
-  
+
       // Validar nombre del producto
       if (!product.itemName?.trim()) {
         errors.push('El nombre del producto es requerido');
       } else if (product.itemName.length > 150) {
         errors.push('El nombre del producto no puede exceder 150 caracteres');
       }
-  
+
       // Validar precio
       if (product.price === undefined || product.price === null) {
         errors.push('El precio es requerido');
       } else if (product.price < 0) {
         errors.push('El precio debe ser mayor o igual a 0');
       }
-  
+
       // Validar descuento
       if (product.discount !== undefined && (product.discount < 0 || product.discount > 100)) {
         errors.push('El descuento debe estar entre 0 y 100');
       }
-  
+
       // Validar sellItem
       if (!product.sellItem?.trim()) {
         errors.push('El estado de venta es requerido');
       } else if (!this.isValidYNStatus(product.sellItem)) {
         errors.push('El estado de venta debe ser Y o N');
       }
-  
+
       // Validar available
       if (!product.available?.trim()) {
         errors.push('El estado de disponibilidad es requerido');
       } else if (!this.isValidYNStatus(product.available)) {
         errors.push('El estado de disponibilidad debe ser Y o N');
       }
-  
+
       // Validar enabled
       if (!product.enabled?.trim()) {
         errors.push('El estado habilitado es requerido');
       } else if (!this.isValidYNStatus(product.enabled)) {
         errors.push('El estado habilitado debe ser Y o N');
       }
-  
+
       // Validar rating
       if (product.rating !== undefined && (product.rating < 0 || product.rating > 5)) {
         errors.push('La calificación debe estar entre 0 y 5');
       }
-  
+
       // Validar códigos EAN
       if (product.eanCode && product.eanCode.length > 20) {
         errors.push('El código EAN no puede exceder 20 caracteres');
       }
-  
+
       return {
         isValid: errors.length === 0,
         errors
@@ -417,8 +443,8 @@ import { ApiResponse } from "../../core/model/api-response.model";
         product.categoryItemCode || '',
         product.waitingTime || '',
         (product.rating || 0).toString(),
-        product.material.length.toString(),
-        product.accompaniment.length.toString()
+       // product.material.length.toString(),
+        //product.accompaniment.length.toString()
       ]);
   
       const csvContent = [headers, ...csvData]

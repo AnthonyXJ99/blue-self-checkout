@@ -27,11 +27,11 @@
 >
     <ng-template #caption>
         <div class="flex flex-col gap-4">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
                 <h5 class="m-0">Gestión de Productos</h5>
-                <p-iconfield>
+                <p-iconfield class="w-full max-w-md">
                     <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar productos..." />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar productos..." class="w-full" />
                 </p-iconfield>
             </div>
             
@@ -299,6 +299,19 @@
                             </p-select>
                         </div>
                         <div>
+                            <label for="sizeCode" class="block font-bold mb-2">Tamaño</label>
+                            <p-select
+                                id="sizeCode"
+                                [options]="sizeOptions()"
+                                [(ngModel)]="product()!.sizeCode"
+                                optionLabel="sizeName"
+                                optionValue="sizeCode"
+                                placeholder="Seleccionar..."
+                                filter
+                                fluid>
+                            </p-select>
+                        </div>
+                        <div>
                             <label for="price" class="block font-bold mb-2">Precio *</label>
                             <p-inputnumber id="price" [(ngModel)]="product()!.price" mode="currency" currency="USD" locale="en-US" [min]="0" required fluid />
                             <small class="text-red-500" *ngIf="submitted() && !product()!.price">Requerido.</small>
@@ -399,25 +412,73 @@
                                             [trueValue]="'Y'"
                                             [falseValue]="'N'"
                                             (onChange)="onHasVariantsChange()"
-                                            [disabled]="product()!.isCombo === 'Y'">
+                                            [disabled]="product()!.isCombo === 'Y' || product()!.u_IsVariant === 'Y'">
                                         </p-checkbox>
-                                        <label for="u_HasVariants" class="cursor-pointer font-medium" [class.text-muted-color]="product()!.isCombo === 'Y'">
+                                        <label for="u_HasVariants" class="cursor-pointer font-medium" [class.text-muted-color]="product()!.isCombo === 'Y' || product()!.u_IsVariant === 'Y'">
                                             <i class="pi pi-clone text-blue-600 mr-1"></i>Tiene Variantes
                                         </label>
                                     </div>
                                     <small class="text-muted-color">Tamaños, colores, etc.</small>
+                                </div>
+                                <div class="flex items-center justify-between p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                    <div class="flex items-center gap-2">
+                                        <p-checkbox
+                                            id="u_IsVariant"
+                                            [(ngModel)]="product()!.u_IsVariant"
+                                            [binary]="true"
+                                            [trueValue]="'Y'"
+                                            [falseValue]="'N'"
+                                            (onChange)="onIsVariantChange()"
+                                            [disabled]="product()!.u_HasVariants === 'Y'">
+                                        </p-checkbox>
+                                        <label for="u_IsVariant" class="cursor-pointer font-medium" [class.text-muted-color]="product()!.u_HasVariants === 'Y'">
+                                            <i class="pi pi-sitemap text-purple-600 mr-1"></i>Es Variante
+                                        </label>
+                                    </div>
+                                    <small class="text-muted-color">Producto hijo/variante</small>
                                 </div>
                                 <div class="mt-1 p-2 bg-blue-100 dark:bg-blue-900/40 rounded">
                                     <div class="flex items-center gap-2 text-sm">
                                         <i class="pi pi-info-circle text-blue-600"></i>
                                         <span>
                                             <strong>Tipo actual:</strong>
-                                            <span *ngIf="product()!.isCombo !== 'Y' && product()!.u_HasVariants !== 'Y'"> Simple</span>
+                                            <span *ngIf="product()!.isCombo !== 'Y' && product()!.u_HasVariants !== 'Y' && product()!.u_IsVariant !== 'Y'"> Simple</span>
                                             <span *ngIf="product()!.isCombo === 'Y'" class="text-orange-600 font-semibold"> Combo</span>
-                                            <span *ngIf="product()!.u_HasVariants === 'Y'" class="text-blue-600 font-semibold"> Variable</span>
+                                            <span *ngIf="product()!.u_HasVariants === 'Y'" class="text-blue-600 font-semibold"> Variable (Padre)</span>
+                                            <span *ngIf="product()!.u_IsVariant === 'Y'" class="text-purple-600 font-semibold"> Variante (Hijo)</span>
                                         </span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selector de Producto Padre (solo si es variante) -->
+                    <div *ngIf="product()!.u_IsVariant === 'Y'" class="mb-4">
+                        <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded border border-purple-200 dark:border-purple-800">
+                            <h6 class="font-semibold mb-3 flex items-center gap-2">
+                                <i class="pi pi-sitemap text-purple-600"></i>
+                                <span>Producto Padre</span>
+                            </h6>
+                            <div>
+                                <label for="u_ParentItem" class="block font-medium mb-2">Seleccionar Producto Padre *</label>
+                                <p-select
+                                    id="u_ParentItem"
+                                    [options]="getParentProductOptions()"
+                                    [(ngModel)]="product()!.u_ParentItem"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    placeholder="Seleccionar producto padre..."
+                                    filter
+                                    fluid>
+                                </p-select>
+                                <small class="text-muted-color mt-2 block">
+                                    <i class="pi pi-info-circle mr-1"></i>
+                                    Seleccione el producto padre para esta variante
+                                </small>
+                                <small class="text-red-500" *ngIf="submitted() && product()!.u_IsVariant === 'Y' && !product()!.u_ParentItem">
+                                    El producto padre es requerido cuando es variante.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -474,7 +535,7 @@
                             (imageSelected)="onImageSelected($event)"
                             (imageCleared)="onImageCleared()">
                         </app-image-selector>
-                        
+
                         <!-- Información adicional de la imagen -->
                         <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded" *ngIf="product()!.imageUrl">
                             <h6 class="font-semibold mb-2">Información de la Imagen</h6>
@@ -491,8 +552,63 @@
                         </div>
                     </div>
                 </p-tabpanel>
-                
-                
+
+                <!-- Pestaña Variantes (solo si tiene variantes) -->
+                <p-tabpanel *ngIf="product()!.u_HasVariants === 'Y'" header="Variantes">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h6 class="font-semibold mb-1 flex items-center gap-2">
+                                    <i class="pi pi-clone text-blue-600"></i>
+                                    <span>Variantes de este Producto</span>
+                                </h6>
+                                <p class="text-sm text-muted-color">
+                                    Lista de productos hijo/variantes asociados a este producto padre
+                                </p>
+                            </div>
+                            <p-tag [value]="productVariants().length + ' variante(s)'" severity="info" />
+                        </div>
+
+                        <div *ngIf="productVariants().length === 0" class="bg-surface-50 dark:bg-surface-800 p-6 rounded text-center">
+                            <i class="pi pi-inbox text-4xl text-muted-color mb-3"></i>
+                            <p class="text-muted-color">No hay variantes creadas para este producto.</p>
+                            <p class="text-sm text-muted-color">Cree productos hijo marcando "Es Variante" y seleccionando este producto como padre.</p>
+                        </div>
+
+                        <div *ngIf="productVariants().length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div *ngFor="let variant of productVariants()"
+                                 class="bg-surface-50 dark:bg-surface-800 p-4 rounded border border-surface-200 dark:border-surface-700 hover:shadow-md transition-shadow">
+                                <div class="flex items-start gap-3">
+                                    <div *ngIf="variant.imageUrl" class="flex-shrink-0">
+                                        <img [src]="variant.imageUrl"
+                                             [alt]="variant.itemName"
+                                             class="w-16 h-16 rounded object-cover border border-surface-200 dark:border-surface-700" />
+                                    </div>
+                                    <div *ngIf="!variant.imageUrl" class="flex-shrink-0">
+                                        <div class="w-16 h-16 bg-surface-100 dark:bg-surface-700 rounded border flex items-center justify-center">
+                                            <i class="pi pi-image text-muted-color text-xl"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold text-sm mb-1 truncate" [title]="variant.itemName">{{ variant.itemName }}</p>
+                                        <p class="text-xs text-muted-color mb-2">{{ variant.itemCode }}</p>
+                                        <div class="flex items-center justify-between gap-2 mb-2">
+                                            <span class="font-bold text-primary">{{ formatPrice(variant.price) }}</span>
+                                            <p-tag *ngIf="variant.available === 'Y'" value="Disponible" severity="success" styleClass="p-tag-sm" />
+                                            <p-tag *ngIf="variant.available !== 'Y'" value="No disponible" severity="danger" styleClass="p-tag-sm" />
+                                        </div>
+                                        <div *ngIf="variant.sizeCode" class="flex items-center gap-1 text-xs text-muted-color">
+                                            <i class="pi pi-arrows-v"></i>
+                                            <span>{{ variant.sizeName || variant.sizeCode }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </p-tabpanel>
+
+
             </p-tabview>
         </div>
     </ng-template>

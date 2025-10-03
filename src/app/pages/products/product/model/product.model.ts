@@ -11,7 +11,7 @@ export interface ProductMaterial {
     isCustomizable: string;              // Y/N
     productItemCode: string;
   }
-  
+
   /**
    * Modelo para Acompañamiento del producto
    */
@@ -22,6 +22,29 @@ export interface ProductMaterial {
     price: number;
     imageUrl?: string;
     productItemCode: string;
+  }
+
+  /**
+   * Modelo simplificado para producto padre (cuando el producto es variante)
+   */
+  export interface ProductParent {
+    itemCode: string;
+    itemName: string;
+    price: number;
+    imageUrl?: string | null;
+  }
+
+  /**
+   * Modelo simplificado para variantes/hijos (cuando el producto tiene variantes)
+   */
+  export interface ProductVariant {
+    itemCode: string;
+    itemName: string;
+    price: number;
+    sizeCode?: string | null;
+    sizeName?: string | null;
+    imageUrl?: string | null;
+    available: string;
   }
   
   /**
@@ -50,9 +73,13 @@ export interface ProductMaterial {
     u_HasVariants?: string;         // Tiene variantes (Y/N)
     u_IsVariant?: string;           // Es variante (Y/N)
     u_ParentItem?: string;          // Producto padre (si es variante)
-    material: ProductMaterial[];    // Materiales del producto
-    accompaniment: ProductAccompaniment[]; // Acompañamientos
-    options?: any[];                // Opciones del combo (según el modelo de combo)
+    // Campos calculados (devueltos por la API)
+    sizeName?: string | null;       // Nombre del tamaño (obtenido desde OSZC)
+    parentProduct?: ProductParent | null;  // Info del padre si es variante
+    variants?: ProductVariant[] | null;    // Lista de hijos si tiene variantes
+    // material: ProductMaterial[];    // Materiales del producto
+    // accompaniment: ProductAccompaniment[]; // Acompañamientos
+    // options?: any[];                // Opciones del combo (según el modelo de combo)
   }
   
   /**

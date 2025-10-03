@@ -31,11 +31,14 @@ import { ProductRepository } from './repositories/product.repository';
 import { ProductGroupRepository } from '../product-group/repositories/product-group.repository';
 import { ProductCategoryRepository } from '../category/repositories/product-category.repository';
 import { ProductTreeApiService } from '../../service/product-tree-api.service';
-import { Product, ProductCreateRequest, ProductUpdateRequest } from './model/product.model';
+import { Product, ProductCreateRequest, ProductUpdateRequest, ProductVariant } from './model/product.model';
 import { ProductGroup } from '../product-group/model/product-group.model';
-import { ProductCategory } from '../category/model/product-category.model'; 
+import { ProductCategory } from '../category/model/product-category.model';
 import { ImageSelectorComponent } from '../../../layout/component/app-image-selector.component';
 import { ComboOptionResponseDto, ComboOptionItemDto } from '../combos/model/combo.model'; // Importar modelos de combo
+import { SizeApiService } from '../../service/size-api.service';
+import { Size } from '../variants/model/size.model';
+import { ProductsService } from '../../service/product-api.service';
 
 // Interfaz para compatibilidad con el template
 interface ProductItem extends Product {}
@@ -111,6 +114,10 @@ export class ProductComponent implements OnInit {
   maxPrice = signal<number | null>(null);
 
   
+  // Tamaños
+  sizes = signal<Size[]>([]);
+  sizeOptions = signal<{sizeCode: string, sizeName: string}[]>([]);
+
   // Ingredientes disponibles
   availableIngredients = signal<number>(0);
 
@@ -119,6 +126,12 @@ export class ProductComponent implements OnInit {
   currentComboOption = signal<ComboOptionItemDto | null>(null);
   currentComboOptionIndex = signal<number | null>(null);
 
+  // Productos padre disponibles para variantes
+  parentProducts = signal<Product[]>([]);
+
+  // Variantes del producto actual
+  productVariants = signal<ProductVariant[]>([]);
+
   constructor(
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
@@ -126,6 +139,8 @@ export class ProductComponent implements OnInit {
     private productGroupRepository: ProductGroupRepository,
     private productCategoryRepository: ProductCategoryRepository,
     private productTreeApiService: ProductTreeApiService,
+    private sizeApiService: SizeApiService,
+    private productsService: ProductsService,
     private router: Router
   ) {}
 
@@ -135,6 +150,8 @@ export class ProductComponent implements OnInit {
     this.loadAvailableIngredients();
     this.loadProductCategories();
     this.loadProducts();
+    this.loadSizes();
+    this.loadParentProducts();
   }
 
   // === CARGA DE DATOS ===
@@ -186,6 +203,78 @@ export class ProductComponent implements OnInit {
       });
   }
 
+  loadSizes() {
+    console.log('Loading sizes...');
+
+    this.sizeApiService.getAllSizes()
+      .subscribe({
+        next: (sizes) => {
+          this.sizes.set(sizes);
+          // Transform sizes to options format for the select component
+          this.sizeOptions.set(sizes.map(size => ({
+            sizeCode: size.sizeCode,
+            sizeName: size.sizeName
+          })));
+          console.log('Sizes loaded:', sizes.length);
+        },
+        error: (error) => {
+          console.error('Error loading sizes:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudieron cargar los tamaños',
+            life: 5000
+          });
+        }
+      });
+  }
+
+  loadParentProducts() {
+    console.log('Loading parent products...');
+
+    this.productsService.getParentProducts()
+      .subscribe({
+        next: (parents) => {
+          this.parentProducts.set(parents);
+          console.log('Parent products loaded:', parents.length);
+        },
+        error: (error) => {
+          console.error('Error loading parent products:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudieron cargar los productos padre',
+            life: 5000
+          });
+        }
+      });
+  }
+
+  loadProductVariants(productCode: string) {
+    console.log('Loading variants for product:', productCode);
+
+    this.productsService.getProductVariants(productCode)
+      .subscribe({
+        next: (variants) => {
+          // Mapear a ProductVariant si es necesario
+          this.productVariants.set(variants.map(v => ({
+            itemCode: v.itemCode,
+            itemName: v.itemName,
+            price: v.price,
+            sizeCode: v.sizeCode,
+            sizeName: v.sizeName,
+            imageUrl: v.imageUrl,
+            available: v.available
+          })));
+          console.log('Variants loaded:', variants.length);
+        },
+        error: (error) => {
+          console.error('Error loading variants:', error);
+          this.productVariants.set([]);
+        }
+      });
+  }
+
   // === CRUD OPERATIONS ===
 
   openNew() {
@@ -197,8 +286,8 @@ export class ProductComponent implements OnInit {
       u_HasVariants: 'N',
       u_IsVariant: 'N',
       u_ParentItem: undefined,
-      material: [],
-      accompaniment: []
+      //material: [],
+      //accompaniment: []
     });
     this.submitted.set(false);
     this.productDialog = true;
@@ -220,6 +309,14 @@ export class ProductComponent implements OnInit {
     }
 
     this.product.set(editProduct);
+
+    // Cargar variantes si tiene u_HasVariants='Y'
+    if (editProduct.u_HasVariants === 'Y') {
+      this.loadProductVariants(editProduct.itemCode);
+    } else {
+      this.productVariants.set([]);
+    }
+
     this.productDialog = true;
   }
 
@@ -751,36 +848,36 @@ export class ProductComponent implements OnInit {
   // MÉTODOS PARA GESTIÓN DE OPCIONES DE COMBO
   // ============================================
 
-  addComboOption() {
-    const currentProduct = this.product();
-    if (!currentProduct || currentProduct.isCombo !== 'Y') {
-      return;
-    }
+  // addComboOption() {
+  //   const currentProduct = this.product();
+  //   if (!currentProduct || currentProduct.isCombo !== 'Y') {
+  //     return;
+  //   }
 
-    // Inicializar comboOptions si no existe
-    if (!currentProduct.options) {
-      currentProduct.options = [];
-    }
+  //   // Inicializar comboOptions si no existe
+  //   if (!currentProduct.options) {
+  //     currentProduct.options = [];
+  //   }
 
-    // Crear una nueva opción con valores por defecto
-    const newOption: ComboOptionItemDto = {
-      componentLineNum: currentProduct.options.length + 1,
-      groupCode: '',
-      itemCode: '',
-      isDefault: 'N',
-      priceDiff: 0,
-      upLevel: 0,
-      available: 'Y',
-      lineNum: currentProduct.options.length + 1,
-      displayOrder: currentProduct.options.length + 1
-    };
+  //   // Crear una nueva opción con valores por defecto
+  //   const newOption: ComboOptionItemDto = {
+  //     componentLineNum: currentProduct.options.length + 1,
+  //     groupCode: '',
+  //     itemCode: '',
+  //     isDefault: 'N',
+  //     priceDiff: 0,
+  //     upLevel: 0,
+  //     available: 'Y',
+  //     lineNum: currentProduct.options.length + 1,
+  //     displayOrder: currentProduct.options.length + 1
+  //   };
 
-    // Actualizar el producto con la nueva opción
-    this.product.set({
-      ...currentProduct,
-      options: [...currentProduct.options, newOption]
-    });
-  }
+  //   // Actualizar el producto con la nueva opción
+  //   this.product.set({
+  //     ...currentProduct,
+  //     options: [...currentProduct.options, newOption]
+  //   });
+  // }
 
   editComboOption(option: ComboOptionItemDto, index: number) {
     this.currentComboOption.set({ ...option });
@@ -788,55 +885,55 @@ export class ProductComponent implements OnInit {
     this.comboOptionDialog.set(true);
   }
 
-  removeComboOption(index: number) {
-    const currentProduct = this.product();
-    if (!currentProduct || !currentProduct.options || index < 0) {
-      return;
-    }
+  // removeComboOption(index: number) {
+  //   const currentProduct = this.product();
+  //   if (!currentProduct || !currentProduct.options || index < 0) {
+  //     return;
+  //   }
 
-    const updatedOptions = [...currentProduct.options];
-    updatedOptions.splice(index, 1);
+  //   const updatedOptions = [...currentProduct.options];
+  //   updatedOptions.splice(index, 1);
 
-    this.product.set({
-      ...currentProduct,
-      options: updatedOptions
-    });
+  //   this.product.set({
+  //     ...currentProduct,
+  //     options: updatedOptions
+  //   });
 
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Exitoso',
-      detail: 'Opción eliminada',
-      life: 3000
-    });
-  }
+  //   this.messageService.add({
+  //     severity: 'success',
+  //     summary: 'Exitoso',
+  //     detail: 'Opción eliminada',
+  //     life: 3000
+  //   });
+  // }
 
-  saveComboOption() {
-    const option = this.currentComboOption();
-    const index = this.currentComboOptionIndex();
-    const currentProduct = this.product();
+  // saveComboOption() {
+  //   const option = this.currentComboOption();
+  //   const index = this.currentComboOptionIndex();
+  //   const currentProduct = this.product();
 
-    if (!option || index === null || !currentProduct || !currentProduct.options) {
-      return;
-    }
+  //   if (!option || index === null || !currentProduct || !currentProduct.options) {
+  //     return;
+  //   }
 
-    // Actualizar la opción en la posición específica
-    const updatedOptions = [...currentProduct.options];
-    updatedOptions[index] = { ...option };
+  //   // Actualizar la opción en la posición específica
+  //   const updatedOptions = [...currentProduct.options];
+  //   updatedOptions[index] = { ...option };
 
-    this.product.set({
-      ...currentProduct,
-      options: updatedOptions
-    });
+  //   this.product.set({
+  //     ...currentProduct,
+  //     options: updatedOptions
+  //   });
 
-    this.hideComboOptionDialog();
+  //   this.hideComboOptionDialog();
 
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Exitoso',
-      detail: 'Opción actualizada',
-      life: 3000
-    });
-  }
+  //   this.messageService.add({
+  //     severity: 'success',
+  //     summary: 'Exitoso',
+  //     detail: 'Opción actualizada',
+  //     life: 3000
+  //   });
+  // }
 
   hideComboOptionDialog() {
     this.comboOptionDialog.set(false);
@@ -885,18 +982,51 @@ export class ProductComponent implements OnInit {
 
   /**
    * Maneja el cambio del checkbox "Tiene Variantes"
-   * Si se marca Tiene Variantes, desmarca automáticamente "Es Combo"
+   * Si se marca Tiene Variantes, desmarca automáticamente "Es Combo" y "Es Variante"
    */
   onHasVariantsChange(): void {
     const currentProduct = this.product();
     if (!currentProduct) return;
 
-    // Si se marca con variantes, desmarcar combo
+    // Si se marca con variantes, desmarcar combo y u_IsVariant
     if (currentProduct.u_HasVariants === 'Y') {
       currentProduct.isCombo = 'N';
+      currentProduct.u_IsVariant = 'N';
+      currentProduct.u_ParentItem = undefined;
     }
 
     this.product.set({ ...currentProduct });
+  }
+
+  /**
+   * Maneja el cambio del checkbox "Es Variante"
+   * Si se marca Es Variante, desmarca automáticamente "Tiene Variantes"
+   */
+  onIsVariantChange(): void {
+    const currentProduct = this.product();
+    if (!currentProduct) return;
+
+    // Si se marca como variante, desmarcar u_HasVariants
+    if (currentProduct.u_IsVariant === 'Y') {
+      currentProduct.u_HasVariants = 'N';
+      // Limpiar variantes cargadas
+      this.productVariants.set([]);
+    } else {
+      // Si se desmarca, limpiar el padre
+      currentProduct.u_ParentItem = undefined;
+    }
+
+    this.product.set({ ...currentProduct });
+  }
+
+  /**
+   * Retorna las opciones de productos padre para el selector
+   */
+  getParentProductOptions(): { label: string; value: string }[] {
+    return this.parentProducts().map(parent => ({
+      label: `${parent.itemCode} - ${parent.itemName}`,
+      value: parent.itemCode
+    }));
   }
 
   /**

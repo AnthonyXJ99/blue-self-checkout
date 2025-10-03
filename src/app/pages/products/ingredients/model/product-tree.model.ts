@@ -8,11 +8,17 @@ export interface ProductTreeItem {
   itemCode: string;
   lineNumber?: number;  // Optional - assigned by backend
   itemName: string;
+  componentName?: string;  // Nombre del componente
   quantity: number;
   imageUrl?: string;
-  isCustomizable?: string;
+  comboItemCode: string;  // Requerido por el backend
+  isCustomizable?: string;  // Y/N
   productTreeItemCode: string;
-  comboItemCode: string;  // NUEVO: Requerido por el backend
+  groupCode?: string;  // Código del grupo
+  displayOrder?: number;  // Orden de visualización
+  isDefault?: string;  // Y/N - Si es la opción por defecto
+  priceDelta?: number;  // Diferencia de precio
+  upgradeLevel?: number;  // Nivel de mejora
 }
 
 /**
@@ -22,6 +28,8 @@ export interface ProductTree {
   itemCode: string;               // Código único del ingrediente (PK)
   itemName: string;               // Nombre del ingrediente
   quantity: number;               // Cantidad
+  comboDescription?: string;      // Descripción del combo
+  displayOrder?: number;          // Orden de visualización
   enabled: string;                // Habilitado (Y/N)
   dataSource: string;             // Fuente de datos
   items1: ProductTreeItem[];      // Lista de materiales/componentes
@@ -34,6 +42,8 @@ export interface ProductTreeCreateRequest {
   itemCode: string;
   itemName: string;
   quantity: number;
+  comboDescription?: string;
+  displayOrder?: number;
   enabled: string;                // Y/N
   dataSource: string;
   items1?: ProductTreeItemCreateRequest[];
@@ -46,6 +56,8 @@ export interface ProductTreeUpdateRequest {
   itemCode?: string;
   itemName?: string;
   quantity?: number;
+  comboDescription?: string;
+  displayOrder?: number;
   enabled?: string;               // Y/N
   dataSource?: string;
   items1?: ProductTreeItemUpdateRequest[];
@@ -56,12 +68,19 @@ export interface ProductTreeUpdateRequest {
  */
 export interface ProductTreeItemCreateRequest {
   itemCode: string;
+  lineNumber?: number;
   itemName: string;
+  componentName?: string;
   quantity: number;
   imageUrl?: string;
+  comboItemCode: string;  // Requerido por el backend
   isCustomizable: string;  // Y/N
-  productTreeItemCode: string;
-  comboItemCode: string;  // NUEVO: Requerido por el backend
+  productTreeItemCode?: string;
+  groupCode?: string;
+  displayOrder?: number;
+  isDefault?: string;  // Y/N
+  priceDelta?: number;
+  upgradeLevel?: number;
 }
 
 /**
@@ -69,12 +88,19 @@ export interface ProductTreeItemCreateRequest {
  */
 export interface ProductTreeItemUpdateRequest {
   itemCode?: string;
+  lineNumber?: number;
   itemName?: string;
+  componentName?: string;
   quantity?: number;
   imageUrl?: string;
-  isCustomizable: string;
+  comboItemCode?: string;
+  isCustomizable?: string;  // Y/N
   productTreeItemCode?: string;
-  comboItemCode?: string;  // NUEVO: Opcional para actualización
+  groupCode?: string;
+  displayOrder?: number;
+  isDefault?: string;  // Y/N
+  priceDelta?: number;
+  upgradeLevel?: number;
 }
 
 /**

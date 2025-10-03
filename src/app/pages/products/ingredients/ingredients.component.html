@@ -293,7 +293,7 @@
                         <div class="flex flex-col gap-4">
                             <!-- Información del producto base -->
                             <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
-                                <h6 class="font-semibold mb-2">Producto Base Seleccionado</h6>
+                                <h6 class="font-semibold mb-3">Producto Base Seleccionado</h6>
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
                                         <i class="pi pi-box text-muted-color"></i>
@@ -304,40 +304,32 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Códigos (solo lectura) -->
                             <div>
-                                <label for="itemCode" class="block font-bold mb-3">Código del Producto</label>
+                                <label for="itemCode" class="block font-bold mb-2">Código del Producto</label>
                                 <input type="text" pInputText id="itemCode" [value]="ingredient()!.itemCode" readonly fluid />
                                 <small class="text-muted-color">Basado en el producto seleccionado</small>
                             </div>
-                            
+
                             <!-- Nombre (solo lectura) -->
                             <div>
-                                <label for="itemName" class="block font-bold mb-3">Nombre del Producto</label>
+                                <label for="itemName" class="block font-bold mb-2">Nombre del Producto</label>
                                 <input type="text" pInputText id="itemName" [value]="ingredient()!.itemName" readonly fluid />
                                 <small class="text-muted-color">Basado en el producto seleccionado</small>
                             </div>
-                            
-                            <!-- Cantidad -->
-                            <div>
-                                <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
-                                <p-inputnumber id="quantity" [(ngModel)]="ingredient()!.quantity" [min]="0" [showButtons]="true" required fluid />
-                                <small class="text-red-500" *ngIf="submitted() && !ingredient()!.quantity">La cantidad es requerida.</small>
-                                <small class="text-muted-color">Cantidad base del producto</small>
-                            </div>
                         </div>
-                        
+
                         <!-- Columna Derecha -->
                         <div class="flex flex-col gap-4">
                             <!-- Estado -->
                             <div>
-                                <label for="enabled" class="block font-bold mb-3">Estado *</label>
-                                <p-select 
+                                <label for="enabled" class="block font-bold mb-2">Estado *</label>
+                                <p-select
                                     id="enabled"
-                                    [options]="getEnabledOptions()" 
+                                    [options]="getEnabledOptions()"
                                     [(ngModel)]="ingredient()!.enabled"
-                                    optionLabel="label" 
+                                    optionLabel="label"
                                     optionValue="value"
                                     variant="filled"
                                     required
@@ -345,43 +337,25 @@
                                 </p-select>
                                 <small class="text-red-500" *ngIf="submitted() && !ingredient()!.enabled">El estado es requerido.</small>
                             </div>
-                            
-                            <!-- Fuente de Datos -->
-                            <div>
-                                <label for="dataSource" class="block font-bold mb-3">Fuente de Datos *</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="dataSource" 
-                                    [(ngModel)]="ingredient()!.dataSource"
-                                    (input)="onDataSourceChange($any($event.target).value)"
-                                    maxlength="1"
-                                    placeholder="N, D, etc."
-                                    required 
-                                    fluid 
-                                    style="text-transform: uppercase;" />
-                                <small class="text-red-500" *ngIf="submitted() && !ingredient()!.dataSource">La fuente de datos es requerida.</small>
-                                <small class="text-muted-color">Un solo carácter (N, D, etc.) - Se convertirá a mayúscula automáticamente</small>
-                            </div>
 
-                            <!-- Información del producto -->
+                            <!-- Resumen del Producto -->
                             <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
-                                <h6 class="font-semibold mb-2">Resumen del Producto</h6>
-                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                <h6 class="font-semibold mb-3">Resumen del Producto</h6>
+                                <div class="grid grid-cols-2 gap-3 text-sm">
                                     <div class="flex justify-between">
-                                        <span>Estado:</span>
+                                        <span class="text-muted-color">Estado:</span>
                                         <p-tag [value]="getEnabledLabel(ingredient()!.enabled)" [severity]="getEnabledSeverity(ingredient()!.enabled)" />
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>Fuente:</span>
+                                        <span class="text-muted-color">Fuente:</span>
                                         <p-tag [value]="getDataSourceLabel(ingredient()!.dataSource)" [severity]="getDataSourceSeverity(ingredient()!.dataSource)" />
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>Ingredientes:</span>
+                                        <span class="text-muted-color">Ingredientes:</span>
                                         <span class="font-semibold">{{ components().length }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>Cantidad total:</span>
+                                        <span class="text-muted-color">Cantidad Total:</span>
                                         <span class="font-semibold">{{ getTotalComponentsQuantity() }}</span>
                                     </div>
                                 </div>
@@ -397,7 +371,7 @@
                         <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded">
                             <div class="flex justify-between items-center mb-3">
                                 <h6 class="font-semibold">📋 Ingredientes para: {{ ingredient()!.itemName }}</h6>
-                                <p-button label="➕ Agregar Ingrediente" icon="pi pi-plus" severity="secondary" (onClick)="addIngredient()" />
+                                <p-button label="Agregar Ingrediente" icon="pi pi-plus" severity="secondary" (onClick)="addIngredient()" />
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div class="text-center">

@@ -1,0 +1,632 @@
+{
+  "document_title": "Documentación de Cambios: Sistema de Variantes Padre-Hijo",
+  "version": "2.0.0",
+  "date": "2025-10-01",
+  "target_audience": "Desarrolladores Web/Frontend",
+  "summary": "El sistema de variantes ha sido reestructurado siguiendo el modelo Padre-Hijo descrito en OIVR_DATA.json. Las variantes ahora son productos completos en OITM, y OIVR solo mapea relaciones entre productos padre e hijos.",
+
+  "arquitectura_actual": {
+    "descripcion": "Modelo Padre-Hijo: OIVR es ahora una tabla de mapeo puro",
+    "tablas_involucradas": {
+      "OITM": {
+        "descripcion": "Tabla de productos - contiene TANTO productos padre COMO productos hijo (variantes)",
+        "campos_clave": {
+          "ItemCode": "Código único del producto (PK)",
+          "SizeCode": "Código del tamaño (FK a OSZC) - usado principalmente en productos hijo",
+          "U_HasVariants": "Y/N - Indica si este producto tiene hijos/variantes",
+          "U_IsVariant": "Y/N - Indica si este producto ES un hijo/variante",
+          "U_ParentItem": "Código del producto padre (solo si U_IsVariant='Y')",
+          "Price": "Precio del producto (cada hijo tiene su propio precio independiente)"
+        }
+      },
+      "OIVR": {
+        "descripcion": "Tabla de mapeo Padre-Hijo (solo relaciona, no almacena características)",
+        "campos": {
+          "BaseItem": "Código del producto padre (FK a OITM) - PK compuesta",
+          "VariantId": "Código del producto hijo (FK a OITM) - PK compuesta"
+        },
+        "nota_importante": "OIVR ya NO tiene campos como VariantName, BrandName, SizeCode, PriceAdjustment. Esas características ahora están en OITM del producto hijo."
+      },
+      "OSZC": {
+        "descripcion": "Tabla maestra de tamaños/presentaciones",
+        "campos": {
+          "SizeCode": "Código del tamaño (PK)",
+          "SizeName": "Nombre del tamaño",
+          "Enabled": "Y/N - Habilitado"
+        }
+      }
+    }
+  },
+
+  "flujo_de_negocio_web": {
+    "descripcion": "Flujo paso a paso para gestionar productos con variantes desde la web",
+
+    "paso_1_crear_producto_padre": {
+      "titulo": "Crear Producto Padre (Genérico)",
+      "descripcion": "Primero se crea el producto genérico que tendrá variantes",
+      "endpoint": "POST /api/Products",
+      "ejemplo_request": {
+        "itemCode": "BEBIDA500",
+        "itemName": "Bebida 500ml",
+        "eanCode": "0000000000000",
+        "price": 0,
+        "u_HasVariants": "Y",
+        "u_ProductType": "V",
+        "sellItem": "N",
+        "available": "Y",
+        "enabled": "Y"
+      },
+      "campos_importantes": {
+        "u_HasVariants": "Debe ser 'Y' para indicar que tendrá variantes/hijos",
+        "u_ProductType": "Usar 'V' para productos variables (con variantes)",
+        "sellItem": "Generalmente 'N' porque el padre no se vende directamente, solo los hijos",
+        "price": "Puede ser 0 o precio base de referencia"
+      },
+      "resultado": "Se crea solo en OITM, NO se crea nada en OIVR todavía"
+    },
+
+    "paso_2_obtener_lista_padres": {
+      "titulo": "Obtener Lista de Productos Padre (para selector)",
+      "descripcion": "Al crear un producto hijo, primero necesitas obtener la lista de productos padre disponibles para mostrar en un selector/dropdown",
+      "endpoint": "GET /api/Products/parents",
+      "metodo": "GET",
+      "response_example": [
+        {
+          "itemCode": "BEBIDA500",
+          "itemName": "Bebida 500ml",
+          "price": 0,
+          "u_HasVariants": "Y",
+          "u_ProductType": "V",
+          "imageUrl": "https://api.example.com/images/bebida.jpg"
+        },
+        {
+          "itemCode": "GASEOSA",
+          "itemName": "Gaseosa",
+          "price": 25.00,
+          "u_HasVariants": "Y",
+          "u_ProductType": "V",
+          "imageUrl": "https://api.example.com/images/gaseosa.jpg"
+        }
+      ],
+      "uso_en_ui": "Usar este endpoint para poblar un <select> o dropdown en el formulario de crear producto hijo"
+    },
+
+    "paso_3_obtener_tamaños": {
+      "titulo": "Obtener Lista de Tamaños (opcional)",
+      "descripcion": "Si el producto hijo requiere un tamaño, obtener la lista de OSZC",
+      "endpoint": "GET /api/Sizes",
+      "metodo": "GET",
+      "response_example": [
+        {
+          "sizeCode": "500ML",
+          "sizeName": "500 Mililitros",
+          "enabled": "Y"
+        },
+        {
+          "sizeCode": "750ML",
+          "sizeName": "750 Mililitros",
+          "enabled": "Y"
+        },
+        {
+          "sizeCode": "1L",
+          "sizeName": "1 Litro",
+          "enabled": "Y"
+        }
+      ],
+      "uso_en_ui": "Mostrar en un selector para que el usuario elija el tamaño del producto hijo"
+    },
+
+    "paso_4_crear_producto_hijo": {
+      "titulo": "Crear Producto Hijo (Variante Específica)",
+      "descripcion": "Crear el producto hijo seleccionando el padre y especificando sus características",
+      "endpoint": "POST /api/Products",
+      "ejemplo_request": {
+        "itemCode": "COCA500",
+        "itemName": "Coca Cola 500ml",
+        "eanCode": "7501234567890",
+        "price": 30.00,
+        "sizeCode": "500ML",
+        "u_IsVariant": "Y",
+        "u_ParentItem": "BEBIDA500",
+        "u_ProductType": "V",
+        "sellItem": "Y",
+        "available": "Y",
+        "enabled": "Y",
+        "imageUrl": "/images/coca500.jpg",
+        "description": "Coca Cola 500ml"
+      },
+      "campos_importantes": {
+        "u_IsVariant": "DEBE ser 'Y' para indicar que es un hijo/variante",
+        "u_ParentItem": "REQUERIDO - Código del producto padre (obtenido del paso 2)",
+        "sizeCode": "Opcional - Código del tamaño seleccionado (obtenido del paso 3)",
+        "price": "Precio PROPIO del producto hijo (no es ajuste, es el precio final)",
+        "sellItem": "Debe ser 'Y' porque los hijos SÍ se venden directamente"
+      },
+      "validaciones_backend": [
+        "Si u_IsVariant='Y', u_ParentItem es REQUERIDO",
+        "El padre debe existir en OITM",
+        "El padre debe tener u_HasVariants='Y'",
+        "Si se proporciona sizeCode, debe existir en OSZC"
+      ],
+      "resultado": {
+        "oitm": "Se crea el producto hijo en OITM con todos sus datos",
+        "oivr": "AUTOMÁTICAMENTE se crea la relación: BaseItem='BEBIDA500', VariantId='COCA500'"
+      },
+      "nota_importante": "El backend crea automáticamente la relación en OIVR. El frontend NO necesita llamar ningún endpoint adicional para crear la relación."
+    },
+
+    "paso_5_ver_variantes_de_un_padre": {
+      "titulo": "Ver todas las variantes de un producto padre",
+      "descripcion": "Obtener la lista de todos los hijos/variantes de un producto padre",
+      "endpoint": "GET /api/Products/{productCode}/variants",
+      "ejemplo": "GET /api/Products/BEBIDA500/variants",
+      "response_example": [
+        {
+          "itemCode": "COCA500",
+          "itemName": "Coca Cola 500ml",
+          "price": 30.00,
+          "sizeCode": "500ML",
+          "sizeName": "500 Mililitros",
+          "imageUrl": "https://api.example.com/images/coca500.jpg",
+          "available": "Y"
+        },
+        {
+          "itemCode": "PEPSI500",
+          "itemName": "Pepsi 500ml",
+          "price": 28.00,
+          "sizeCode": "500ML",
+          "sizeName": "500 Mililitros",
+          "imageUrl": "https://api.example.com/images/pepsi500.jpg",
+          "available": "Y"
+        }
+      ],
+      "uso_en_ui": "Mostrar en una tabla o lista las variantes de un producto padre en la vista de detalle"
+    },
+
+    "paso_6_ver_producto_con_relaciones": {
+      "titulo": "Ver un producto con su padre y variantes",
+      "descripcion": "Al obtener un producto, automáticamente incluye info del padre (si es hijo) o lista de variantes (si es padre)",
+      "endpoint": "GET /api/Products/{productCode}",
+      "ejemplo_producto_hijo": {
+        "request": "GET /api/Products/COCA500",
+        "response": {
+          "itemCode": "COCA500",
+          "itemName": "Coca Cola 500ml",
+          "price": 30.00,
+          "sizeCode": "500ML",
+          "sizeName": "500 Mililitros",
+          "u_IsVariant": "Y",
+          "u_ParentItem": "BEBIDA500",
+          "parentProduct": {
+            "itemCode": "BEBIDA500",
+            "itemName": "Bebida 500ml",
+            "price": 0,
+            "imageUrl": "https://api.example.com/images/bebida.jpg"
+          },
+          "variants": null
+        }
+      },
+      "ejemplo_producto_padre": {
+        "request": "GET /api/Products/BEBIDA500",
+        "response": {
+          "itemCode": "BEBIDA500",
+          "itemName": "Bebida 500ml",
+          "price": 0,
+          "u_HasVariants": "Y",
+          "u_ProductType": "V",
+          "parentProduct": null,
+          "variants": [
+            {
+              "itemCode": "COCA500",
+              "itemName": "Coca Cola 500ml",
+              "price": 30.00,
+              "sizeCode": "500ML",
+              "sizeName": "500 Mililitros",
+              "available": "Y"
+            },
+            {
+              "itemCode": "PEPSI500",
+              "itemName": "Pepsi 500ml",
+              "price": 28.00,
+              "sizeCode": "500ML",
+              "sizeName": "500 Mililitros",
+              "available": "Y"
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "endpoints_actualizados": {
+    "productos": {
+      "GET_api_Products_parents": {
+        "metodo": "GET",
+        "ruta": "/api/Products/parents",
+        "descripcion": "NUEVO - Obtiene lista de productos padre (U_HasVariants='Y')",
+        "uso": "Para poblar selector al crear producto hijo",
+        "response_type": "ProductDto[]"
+      },
+      "POST_api_Products": {
+        "metodo": "POST",
+        "ruta": "/api/Products",
+        "descripcion": "MODIFICADO - Ahora valida y crea relación OIVR automáticamente si u_IsVariant='Y'",
+        "request_type": "ProductCreateDto",
+        "response_type": "ProductDto",
+        "validaciones_nuevas": [
+          "Si u_IsVariant='Y', u_ParentItem es requerido",
+          "El padre debe existir",
+          "El padre debe tener u_HasVariants='Y'"
+        ]
+      },
+      "GET_api_Products_productCode": {
+        "metodo": "GET",
+        "ruta": "/api/Products/{productCode}",
+        "descripcion": "MODIFICADO - Ahora incluye campos calculados: parentProduct y variants",
+        "response_type": "ProductDto (con parentProduct y variants)",
+        "campos_nuevos_en_response": {
+          "parentProduct": "ProductParentDto | null - Info del padre si es variante",
+          "variants": "ProductVariantDto[] | null - Lista de hijos si tiene variantes",
+          "sizeName": "string | null - Nombre del tamaño desde OSZC"
+        }
+      },
+      "GET_api_Products_productCode_variants": {
+        "metodo": "GET",
+        "ruta": "/api/Products/{productCode}/variants",
+        "descripcion": "NUEVO - Obtiene todas las variantes de un producto padre",
+        "response_type": "ProductVariantDto[]",
+        "validaciones": [
+          "El producto debe existir",
+          "El producto debe tener U_HasVariants='Y'"
+        ]
+      }
+    },
+    "sizes": {
+      "GET_api_Sizes": {
+        "metodo": "GET",
+        "ruta": "/api/Sizes",
+        "descripcion": "Obtiene todos los tamaños",
+        "response_type": "SizeDto[]"
+      },
+      "GET_api_Sizes_enabled": {
+        "metodo": "GET",
+        "ruta": "/api/Sizes/enabled",
+        "descripcion": "Obtiene solo tamaños habilitados (Enabled='Y')",
+        "response_type": "SizeDto[]",
+        "uso": "Usar este endpoint para selectores en formularios"
+      }
+    }
+  },
+
+  "dtos_actualizados": {
+    "ProductCreateDto": {
+      "descripcion": "DTO para crear productos (padre o hijo)",
+      "campos_nuevos_o_importantes": {
+        "u_HasVariants": "string - 'Y'/'N' - Indica si tendrá variantes",
+        "u_IsVariant": "string - 'Y'/'N' - Indica si ES una variante",
+        "u_ParentItem": "string - Código del padre (REQUERIDO si u_IsVariant='Y')",
+        "u_ProductType": "string - 'S'=Simple, 'V'=Variable, 'C'=Combo",
+        "sizeCode": "string - Código del tamaño (opcional)"
+      },
+      "ejemplo_producto_padre": {
+        "itemCode": "BEBIDA500",
+        "itemName": "Bebida 500ml",
+        "eanCode": "0000000000000",
+        "price": 0,
+        "u_HasVariants": "Y",
+        "u_ProductType": "V",
+        "sellItem": "N",
+        "available": "Y",
+        "enabled": "Y"
+      },
+      "ejemplo_producto_hijo": {
+        "itemCode": "COCA500",
+        "itemName": "Coca Cola 500ml",
+        "eanCode": "7501234567890",
+        "price": 30.00,
+        "sizeCode": "500ML",
+        "u_IsVariant": "Y",
+        "u_ParentItem": "BEBIDA500",
+        "sellItem": "Y",
+        "available": "Y",
+        "enabled": "Y"
+      }
+    },
+    "ProductDto": {
+      "descripcion": "DTO de respuesta con información completa del producto",
+      "campos_nuevos_calculados": {
+        "sizeName": "string | null - Nombre del tamaño (obtenido desde OSZC)",
+        "parentProduct": "ProductParentDto | null - Info del padre si es variante",
+        "variants": "ProductVariantDto[] | null - Lista de hijos si tiene variantes"
+      }
+    },
+    "ProductParentDto": {
+      "descripcion": "DTO simplificado para mostrar info del producto padre",
+      "campos": {
+        "itemCode": "string",
+        "itemName": "string",
+        "price": "decimal",
+        "imageUrl": "string | null"
+      },
+      "ejemplo": {
+        "itemCode": "BEBIDA500",
+        "itemName": "Bebida 500ml",
+        "price": 0,
+        "imageUrl": "https://api.example.com/images/bebida.jpg"
+      }
+    },
+    "ProductVariantDto": {
+      "descripcion": "DTO simplificado para mostrar variantes (hijos) en lista",
+      "campos": {
+        "itemCode": "string",
+        "itemName": "string",
+        "price": "decimal",
+        "sizeCode": "string | null",
+        "sizeName": "string | null",
+        "imageUrl": "string | null",
+        "available": "string"
+      },
+      "ejemplo": {
+        "itemCode": "COCA500",
+        "itemName": "Coca Cola 500ml",
+        "price": 30.00,
+        "sizeCode": "500ML",
+        "sizeName": "500 Mililitros",
+        "imageUrl": "https://api.example.com/images/coca500.jpg",
+        "available": "Y"
+      }
+    },
+    "SizeDto": {
+      "descripcion": "DTO para tamaños/presentaciones",
+      "campos": {
+        "sizeCode": "string",
+        "sizeName": "string",
+        "enabled": "string",
+        "lineNum": "int"
+      }
+    }
+  },
+
+  "ejemplos_flujo_completo_ui": {
+    "escenario_crear_bebidas": {
+      "titulo": "Ejemplo: Crear sistema de bebidas con variantes",
+
+      "paso_1": {
+        "accion": "Usuario crea producto padre 'Bebida 500ml'",
+        "ui_form": {
+          "itemCode": "BEBIDA500",
+          "itemName": "Bebida 500ml",
+          "price": 0,
+          "u_HasVariants_checkbox": true,
+          "sellItem_checkbox": false
+        },
+        "request": "POST /api/Products",
+        "body": {
+          "itemCode": "BEBIDA500",
+          "itemName": "Bebida 500ml",
+          "eanCode": "0000000000000",
+          "price": 0,
+          "u_HasVariants": "Y",
+          "u_ProductType": "V",
+          "sellItem": "N",
+          "available": "Y",
+          "enabled": "Y"
+        }
+      },
+
+      "paso_2": {
+        "accion": "Usuario va a crear primera variante 'Coca Cola 500ml'",
+        "ui_carga_datos": {
+          "llamada_1": "GET /api/Products/parents (para obtener lista de padres)",
+          "llamada_2": "GET /api/Sizes/enabled (para obtener lista de tamaños)"
+        },
+        "ui_form_muestra": {
+          "selector_padre": ["BEBIDA500 - Bebida 500ml"],
+          "selector_tamaño": ["500ML - 500 Mililitros", "750ML - 750 Mililitros", "1L - 1 Litro"]
+        }
+      },
+
+      "paso_3": {
+        "accion": "Usuario completa formulario y crea variante",
+        "ui_form": {
+          "itemCode": "COCA500",
+          "itemName": "Coca Cola 500ml",
+          "eanCode": "7501234567890",
+          "price": 30.00,
+          "u_ParentItem_select": "BEBIDA500",
+          "sizeCode_select": "500ML",
+          "u_IsVariant_checkbox": true,
+          "sellItem_checkbox": true
+        },
+        "request": "POST /api/Products",
+        "body": {
+          "itemCode": "COCA500",
+          "itemName": "Coca Cola 500ml",
+          "eanCode": "7501234567890",
+          "price": 30.00,
+          "sizeCode": "500ML",
+          "u_IsVariant": "Y",
+          "u_ParentItem": "BEBIDA500",
+          "sellItem": "Y",
+          "available": "Y",
+          "enabled": "Y"
+        },
+        "resultado_backend": "Se crea COCA500 en OITM y relación (BEBIDA500, COCA500) en OIVR automáticamente"
+      },
+
+      "paso_4": {
+        "accion": "Usuario repite para crear más variantes",
+        "variantes_adicionales": [
+          {
+            "itemCode": "PEPSI500",
+            "itemName": "Pepsi 500ml",
+            "price": 28.00,
+            "u_ParentItem": "BEBIDA500"
+          },
+          {
+            "itemCode": "FANTA500",
+            "itemName": "Fanta Naranja 500ml",
+            "price": 27.00,
+            "u_ParentItem": "BEBIDA500"
+          }
+        ]
+      },
+
+      "paso_5": {
+        "accion": "Usuario ve el producto padre con sus variantes",
+        "request": "GET /api/Products/BEBIDA500",
+        "ui_muestra": {
+          "titulo": "Bebida 500ml",
+          "precio": 0,
+          "tiene_variantes": true,
+          "tabla_variantes": [
+            {"codigo": "COCA500", "nombre": "Coca Cola 500ml", "precio": 30.00},
+            {"codigo": "PEPSI500", "nombre": "Pepsi 500ml", "precio": 28.00},
+            {"codigo": "FANTA500", "nombre": "Fanta Naranja 500ml", "precio": 27.00}
+          ]
+        }
+      }
+    }
+  },
+
+  "validaciones_y_errores": {
+    "error_1_ambos_campos_activos": {
+      "descripcion": "❌ ERROR MÁS CRÍTICO: Intentar crear producto con U_HasVariants='Y' y U_IsVariant='Y'",
+      "request": {
+        "itemCode": "INVALIDO",
+        "itemName": "Producto Inválido",
+        "u_HasVariants": "Y",
+        "u_IsVariant": "Y",
+        "u_ParentItem": "PADRE123"
+      },
+      "error_response": {
+        "status": 400,
+        "message": "Un producto no puede tener U_HasVariants='Y' y U_IsVariant='Y' simultáneamente. Debe elegir solo una opción o ninguna."
+      },
+      "prevencion_frontend": "Deshabilitar checkbox U_HasVariants cuando U_IsVariant está marcado, y viceversa"
+    },
+    "error_2_hijo_sin_padre": {
+      "descripcion": "Intentar crear hijo sin especificar padre",
+      "request": {
+        "itemCode": "COCA500",
+        "u_IsVariant": "Y"
+      },
+      "error_response": {
+        "status": 400,
+        "message": "Si U_IsVariant es 'Y', debe especificar U_ParentItem."
+      }
+    },
+    "error_3_padre_no_existe": {
+      "descripcion": "Especificar un padre que no existe",
+      "request": {
+        "itemCode": "COCA500",
+        "u_IsVariant": "Y",
+        "u_ParentItem": "NOEXISTE"
+      },
+      "error_response": {
+        "status": 404,
+        "message": "El producto padre 'NOEXISTE' no existe."
+      }
+    },
+    "error_4_padre_sin_variantes_habilitadas": {
+      "descripcion": "Intentar crear hijo de un producto que no tiene U_HasVariants='Y'",
+      "request": {
+        "itemCode": "COCA500",
+        "u_IsVariant": "Y",
+        "u_ParentItem": "PRODUCTO_SIMPLE"
+      },
+      "error_response": {
+        "status": 400,
+        "message": "El producto padre 'PRODUCTO_SIMPLE' no tiene variantes habilitadas (U_HasVariants debe ser 'Y')."
+      }
+    },
+    "error_5_obtener_variantes_de_producto_sin_variantes": {
+      "descripcion": "Intentar obtener variantes de un producto que no las tiene",
+      "request": "GET /api/Products/PRODUCTO_SIMPLE/variants",
+      "error_response": {
+        "status": 400,
+        "message": "El producto 'PRODUCTO_SIMPLE' no tiene variantes habilitadas."
+      }
+    }
+  },
+
+  "migracion_datos_existentes": {
+    "nota": "Si ya tienes productos con el modelo anterior de variantes, necesitarás migrarlos al nuevo modelo",
+    "pasos_migracion": [
+      "1. Identificar productos padre existentes (marcar U_HasVariants='Y')",
+      "2. Para cada variante anterior en OIVR:",
+      "   - Crear un nuevo producto en OITM con los datos de la variante",
+      "   - Actualizar OIVR para que apunte al nuevo producto hijo",
+      "3. Eliminar campos obsoletos de OIVR (VariantName, BrandName, etc.)"
+    ],
+    "contacto_migracion": "Contactar al equipo de backend si necesitas asistencia con la migración de datos existentes"
+  },
+
+  "reglas_de_negocio_criticas": {
+    "regla_1_exclusividad": {
+      "titulo": "⚠️ IMPORTANTE: U_HasVariants y U_IsVariant son MUTUAMENTE EXCLUYENTES",
+      "descripcion": "Un producto NO puede tener ambos campos en 'Y' al mismo tiempo",
+      "razon": "Un producto no puede ser una variante (hijo) y al mismo tiempo tener variantes (ser padre). Esto crearía una estructura jerárquica compleja no soportada.",
+      "combinaciones_validas": {
+        "producto_padre": {
+          "u_HasVariants": "Y",
+          "u_IsVariant": "N" | "null",
+          "u_ParentItem": "null",
+          "descripcion": "Producto que tiene hijos/variantes"
+        },
+        "producto_hijo": {
+          "u_HasVariants": "N" | "null",
+          "u_IsVariant": "Y",
+          "u_ParentItem": "CODIGO_PADRE",
+          "descripcion": "Producto que es variante de un padre"
+        },
+        "producto_simple": {
+          "u_HasVariants": "N" | "null",
+          "u_IsVariant": "N" | "null",
+          "u_ParentItem": "null",
+          "descripcion": "Producto simple sin relaciones"
+        }
+      },
+      "combinacion_invalida": {
+        "u_HasVariants": "Y",
+        "u_IsVariant": "Y",
+        "resultado": "❌ ERROR - Esta combinación NO está permitida"
+      },
+      "validacion_frontend": {
+        "descripcion": "El frontend DEBE validar esta regla antes de enviar el request",
+        "logica": "if (u_HasVariants === 'Y' && u_IsVariant === 'Y') { mostrar error; return; }",
+        "mensaje_error_sugerido": "Un producto no puede ser variante y tener variantes al mismo tiempo. Debe elegir solo una opción."
+      },
+      "validacion_backend": {
+        "descripcion": "El backend DEBE rechazar requests que violen esta regla",
+        "status_code": 400,
+        "mensaje_error": "Un producto no puede tener U_HasVariants='Y' y U_IsVariant='Y' simultáneamente."
+      }
+    },
+    "regla_2_jerarquia_simple": {
+      "titulo": "Jerarquía Simple de 2 Niveles",
+      "descripcion": "El sistema solo soporta relaciones PADRE → HIJO (no nietos ni estructuras más complejas)",
+      "estructura_soportada": "Padre (U_HasVariants='Y') → Hijos (U_IsVariant='Y')",
+      "estructura_no_soportada": "Padre → Hijo → Nieto (NO permitido)"
+    },
+    "regla_3_padre_requerido": {
+      "titulo": "Si U_IsVariant='Y', entonces U_ParentItem es OBLIGATORIO",
+      "validacion": "if (u_IsVariant === 'Y' && !u_ParentItem) { error; }",
+      "mensaje_error": "Si el producto es una variante, debe especificar el código del producto padre."
+    }
+  },
+
+  "notas_importantes": {
+    "punto_1": "El backend crea automáticamente la relación en OIVR. El frontend NO necesita hacer nada extra.",
+    "punto_2": "Cada variante (hijo) tiene su PROPIO precio en OITM, NO es un ajuste sobre el precio del padre.",
+    "punto_3": "El producto padre generalmente NO se vende (sellItem='N'), solo los hijos.",
+    "punto_4": "⚠️ CRÍTICO: U_HasVariants='Y' y U_IsVariant='Y' NO pueden estar activos al mismo tiempo. Solo uno o ninguno.",
+    "punto_5": "Los campos U_HasVariants, U_IsVariant y U_ParentItem deben ser validados en el frontend antes de enviar.",
+    "punto_6": "Usar siempre GET /api/Products/parents para obtener lista de padres disponibles, NO usar GET /api/Products y filtrar en frontend."
+  },
+
+  "contact_support": {
+    "backend_team": "Contactar al equipo de backend para dudas sobre la implementación",
+    "documentation": "Revisar API_DOCUMENTATION.md para más detalles sobre los endpoints"
+  }
+}

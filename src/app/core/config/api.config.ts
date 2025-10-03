@@ -21,7 +21,7 @@ export const API_CONFIG = {
     PRODUCT_TREES: 'api/producttrees',
     ACCOMPANIMENTS: 'api/accompaniments',
     COMBOS: 'api/Combos',
-    SIZES: 'api/products/sizes',
+    SIZES: 'api/sizes',
     
     // Devices
     DEVICES: 'api/devices',
