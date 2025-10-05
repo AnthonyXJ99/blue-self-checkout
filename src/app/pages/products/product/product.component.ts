@@ -35,9 +35,8 @@ import { Product, ProductCreateRequest, ProductUpdateRequest, ProductVariant } f
 import { ProductGroup } from '../product-group/model/product-group.model';
 import { ProductCategory } from '../category/model/product-category.model';
 import { ImageSelectorComponent } from '../../../layout/component/app-image-selector.component';
-import { ComboOptionResponseDto, ComboOptionItemDto } from '../combos/model/combo.model'; // Importar modelos de combo
 import { SizeApiService } from '../../service/size-api.service';
-import { Size } from '../variants/model/size.model';
+import { Size } from './model/size.model';
 import { ProductsService } from '../../service/product-api.service';
 
 // Interfaz para compatibilidad con el template
@@ -120,11 +119,6 @@ export class ProductComponent implements OnInit {
 
   // Ingredientes disponibles
   availableIngredients = signal<number>(0);
-
-  // Nuevo: Variables para manejo de opciones de combo
-  comboOptionDialog = signal(false);
-  currentComboOption = signal<ComboOptionItemDto | null>(null);
-  currentComboOptionIndex = signal<number | null>(null);
 
   // Productos padre disponibles para variantes
   parentProducts = signal<Product[]>([]);
@@ -842,124 +836,6 @@ export class ProductComponent implements OnInit {
 
   hasAvailableIngredients(): boolean {
     return this.availableIngredients() > 0;
-  }
-
-  // ============================================
-  // MÉTODOS PARA GESTIÓN DE OPCIONES DE COMBO
-  // ============================================
-
-  // addComboOption() {
-  //   const currentProduct = this.product();
-  //   if (!currentProduct || currentProduct.isCombo !== 'Y') {
-  //     return;
-  //   }
-
-  //   // Inicializar comboOptions si no existe
-  //   if (!currentProduct.options) {
-  //     currentProduct.options = [];
-  //   }
-
-  //   // Crear una nueva opción con valores por defecto
-  //   const newOption: ComboOptionItemDto = {
-  //     componentLineNum: currentProduct.options.length + 1,
-  //     groupCode: '',
-  //     itemCode: '',
-  //     isDefault: 'N',
-  //     priceDiff: 0,
-  //     upLevel: 0,
-  //     available: 'Y',
-  //     lineNum: currentProduct.options.length + 1,
-  //     displayOrder: currentProduct.options.length + 1
-  //   };
-
-  //   // Actualizar el producto con la nueva opción
-  //   this.product.set({
-  //     ...currentProduct,
-  //     options: [...currentProduct.options, newOption]
-  //   });
-  // }
-
-  editComboOption(option: ComboOptionItemDto, index: number) {
-    this.currentComboOption.set({ ...option });
-    this.currentComboOptionIndex.set(index);
-    this.comboOptionDialog.set(true);
-  }
-
-  // removeComboOption(index: number) {
-  //   const currentProduct = this.product();
-  //   if (!currentProduct || !currentProduct.options || index < 0) {
-  //     return;
-  //   }
-
-  //   const updatedOptions = [...currentProduct.options];
-  //   updatedOptions.splice(index, 1);
-
-  //   this.product.set({
-  //     ...currentProduct,
-  //     options: updatedOptions
-  //   });
-
-  //   this.messageService.add({
-  //     severity: 'success',
-  //     summary: 'Exitoso',
-  //     detail: 'Opción eliminada',
-  //     life: 3000
-  //   });
-  // }
-
-  // saveComboOption() {
-  //   const option = this.currentComboOption();
-  //   const index = this.currentComboOptionIndex();
-  //   const currentProduct = this.product();
-
-  //   if (!option || index === null || !currentProduct || !currentProduct.options) {
-  //     return;
-  //   }
-
-  //   // Actualizar la opción en la posición específica
-  //   const updatedOptions = [...currentProduct.options];
-  //   updatedOptions[index] = { ...option };
-
-  //   this.product.set({
-  //     ...currentProduct,
-  //     options: updatedOptions
-  //   });
-
-  //   this.hideComboOptionDialog();
-
-  //   this.messageService.add({
-  //     severity: 'success',
-  //     summary: 'Exitoso',
-  //     detail: 'Opción actualizada',
-  //     life: 3000
-  //   });
-  // }
-
-  hideComboOptionDialog() {
-    this.comboOptionDialog.set(false);
-    this.currentComboOption.set(null);
-    this.currentComboOptionIndex.set(null);
-  }
-
-  getGroupOptions(): { label: string; value: string }[] {
-    // Esta es una lista de ejemplo, en la práctica podría venir de un servicio
-    return [
-      { label: 'Bebidas', value: 'BEBIDAS' },
-      { label: 'Acompañamientos', value: 'ACOMP' },
-      { label: 'Salsas', value: 'SALSAS' },
-      { label: 'Postres', value: 'POSTRES' },
-      { label: 'Extras', value: 'EXTRAS' }
-    ];
-  }
-
-  getAvailableProductsForOptions(): ProductItem[] {
-    // Retorna todos los productos que no son combos y están disponibles para venta
-    return this.products().filter(product =>
-      product.isCombo !== 'Y' &&
-      product.sellItem === 'Y' &&
-      product.available === 'Y' &&
-      product.enabled === 'Y'
-    );
   }
 
   // === MÉTODOS PARA TIPO DE PRODUCTO (MUTUAMENTE EXCLUYENTES) ===

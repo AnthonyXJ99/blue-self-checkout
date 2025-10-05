@@ -393,14 +393,22 @@ export class IngredientsComponent implements OnInit {
         quantity: currentIngredient.quantity,
         enabled: currentIngredient.enabled,
         dataSource: currentIngredient.dataSource,
+        comboDescription: currentIngredient.comboDescription,
+        displayOrder: currentIngredient.displayOrder,
         items1: currentIngredient.items1.map(item => ({
           itemCode: item.itemCode,
           itemName: item.itemName,
+          componentName: item.componentName,
           quantity: item.quantity,
           isCustomizable: item.isCustomizable || 'N',
           imageUrl: item.imageUrl,
           productTreeItemCode: item.productTreeItemCode,
-          comboItemCode: item.comboItemCode || ''
+          comboItemCode: item.comboItemCode || '',
+          groupCode: item.groupCode,
+          displayOrder: item.displayOrder,
+          isDefault: item.isDefault,
+          priceDelta: item.priceDelta,
+          upgradeLevel: item.upgradeLevel
         }))
       };
 
@@ -435,14 +443,22 @@ export class IngredientsComponent implements OnInit {
         quantity: currentIngredient.quantity,
         enabled: currentIngredient.enabled,
         dataSource: currentIngredient.dataSource,
+        comboDescription: currentIngredient.comboDescription,
+        displayOrder: currentIngredient.displayOrder,
         items1: currentIngredient.items1.map(item => ({
           itemCode: item.itemCode,
           itemName: item.itemName,
+          componentName: item.componentName,
           quantity: item.quantity,
           imageUrl: item.imageUrl,
           isCustomizable: item.isCustomizable || 'N',
           productTreeItemCode: item.productTreeItemCode,
-          comboItemCode: item.comboItemCode || ''
+          comboItemCode: item.comboItemCode || '',
+          groupCode: item.groupCode,
+          displayOrder: item.displayOrder,
+          isDefault: item.isDefault,
+          priceDelta: item.priceDelta,
+          upgradeLevel: item.upgradeLevel
         }))
       };
       console.log(createData);
@@ -532,9 +548,16 @@ export class IngredientsComponent implements OnInit {
       itemName: '',
       quantity: 1,
       imageUrl: '',
-      isCustomizable: 'N', // Valor por defecto
+      isCustomizable: 'N',
       productTreeItemCode: this.ingredient()?.itemCode || '',
-      comboItemCode: '' // Nuevo campo requerido
+      comboItemCode: '',
+      // Campos de upgrade - inicializados vacíos
+      componentName: '',
+      groupCode: '',
+      displayOrder: 0,
+      isDefault: 'N',
+      priceDelta: 0,
+      upgradeLevel: 0
     };
     // Agregar el nuevo ingrediente al inicio del array para que aparezca arriba
     this.components.set([newIngredient, ...this.components()]);
@@ -548,9 +571,17 @@ export class IngredientsComponent implements OnInit {
       itemName: product.itemName,
       quantity: currentIngredients[ingredientIndex]?.quantity || 1,
       imageUrl: this.extractImagePath(product.imageUrl || ''),
-      isCustomizable: currentIngredients[ingredientIndex]?.isCustomizable || 'N', // Mantener valor actual o usar 'N' por defecto
+      isCustomizable: currentIngredients[ingredientIndex]?.isCustomizable || 'N',
       productTreeItemCode: this.ingredient()?.itemCode || '',
-      comboItemCode: currentIngredients[ingredientIndex]?.comboItemCode || '' // Mantener o inicializar
+      comboItemCode: currentIngredients[ingredientIndex]?.comboItemCode || '',
+      // Auto-completar groupCode desde groupItemCode del producto seleccionado
+      groupCode: product.groupItemCode || '',
+      // Inicializar campos de upgrade si no existen
+      componentName: currentIngredients[ingredientIndex]?.componentName || '',
+      displayOrder: currentIngredients[ingredientIndex]?.displayOrder || 0,
+      isDefault: currentIngredients[ingredientIndex]?.isDefault || 'N',
+      priceDelta: currentIngredients[ingredientIndex]?.priceDelta || 0,
+      upgradeLevel: currentIngredients[ingredientIndex]?.upgradeLevel || 0
     };
     this.components.set(currentIngredients);
   }
@@ -569,6 +600,134 @@ export class IngredientsComponent implements OnInit {
       currentIngredients[ingredientIndex].isCustomizable = isCustomizable;
       this.components.set(currentIngredients);
     }
+  }
+
+  // === MÉTODOS PARA ACTUALIZAR CAMPOS DE UPGRADE ===
+
+  updateComponentName(ingredientIndex: number, componentName: string) {
+    const currentIngredients = [...this.components()];
+    if (currentIngredients[ingredientIndex]) {
+      currentIngredients[ingredientIndex].componentName = componentName;
+      this.components.set(currentIngredients);
+    }
+  }
+
+  updateDisplayOrder(ingredientIndex: number, displayOrder: number | string) {
+    const currentIngredients = [...this.components()];
+    if (currentIngredients[ingredientIndex]) {
+      currentIngredients[ingredientIndex].displayOrder = typeof displayOrder === 'string' ? parseInt(displayOrder) || 0 : displayOrder;
+      this.components.set(currentIngredients);
+    }
+  }
+
+  updateIsDefault(ingredientIndex: number, isDefault: string) {
+    const currentIngredients = [...this.components()];
+    if (currentIngredients[ingredientIndex]) {
+      currentIngredients[ingredientIndex].isDefault = isDefault;
+
+      // Si se marca como default, auto-setear priceDelta=0 y upgradeLevel=0
+      if (isDefault === 'Y') {
+        currentIngredients[ingredientIndex].priceDelta = 0;
+        currentIngredients[ingredientIndex].upgradeLevel = 0;
+      }
+
+      this.components.set(currentIngredients);
+    }
+  }
+
+  updatePriceDelta(ingredientIndex: number, priceDelta: number | string) {
+    const currentIngredients = [...this.components()];
+    if (currentIngredients[ingredientIndex]) {
+      const numericValue = typeof priceDelta === 'string' ? parseFloat(priceDelta) || 0 : priceDelta;
+      // No permitir priceDelta si es default
+      if (currentIngredients[ingredientIndex].isDefault === 'Y') {
+        currentIngredients[ingredientIndex].priceDelta = 0;
+      } else {
+        currentIngredients[ingredientIndex].priceDelta = numericValue;
+      }
+      this.components.set(currentIngredients);
+    }
+  }
+
+  updateUpgradeLevel(ingredientIndex: number, upgradeLevel: number | string) {
+    const currentIngredients = [...this.components()];
+    if (currentIngredients[ingredientIndex]) {
+      const numericValue = typeof upgradeLevel === 'string' ? parseInt(upgradeLevel) || 0 : upgradeLevel;
+      // No permitir upgradeLevel si es default
+      if (currentIngredients[ingredientIndex].isDefault === 'Y') {
+        currentIngredients[ingredientIndex].upgradeLevel = 0;
+      } else {
+        currentIngredients[ingredientIndex].upgradeLevel = numericValue;
+      }
+      this.components.set(currentIngredients);
+    }
+  }
+
+  // === MÉTODOS DE VALIDACIÓN Y UTILIDAD ===
+
+  // Verifica si un ingrediente tiene groupCode (es candidato a upgrades)
+  hasGroupCode(ingredient: ProductTreeItem): boolean {
+    return !!ingredient.groupCode && ingredient.groupCode.trim() !== '';
+  }
+
+  // Obtiene todos los ingredientes agrupados por groupCode
+  getIngredientsByGroup(): Map<string, ProductTreeItem[]> {
+    const groups = new Map<string, ProductTreeItem[]>();
+
+    this.components().forEach(ingredient => {
+      if (this.hasGroupCode(ingredient)) {
+        const groupCode = ingredient.groupCode!;
+        if (!groups.has(groupCode)) {
+          groups.set(groupCode, []);
+        }
+        groups.get(groupCode)!.push(ingredient);
+      }
+    });
+
+    return groups;
+  }
+
+  // Valida que solo haya un default por grupo
+  validateDefaultPerGroup(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    const groups = this.getIngredientsByGroup();
+
+    groups.forEach((ingredients, groupCode) => {
+      const defaults = ingredients.filter(ing => ing.isDefault === 'Y');
+
+      if (defaults.length === 0) {
+        errors.push(`El grupo "${groupCode}" no tiene una opción por defecto.`);
+      } else if (defaults.length > 1) {
+        errors.push(`El grupo "${groupCode}" tiene ${defaults.length} opciones por defecto. Solo debe tener una.`);
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  // Obtiene el nombre del grupo para mostrar en UI
+  getGroupLabel(groupCode: string): string {
+    // Buscar si hay un ProductCategory/ProductGroup con ese código
+    // Por ahora, retornar el código formateado
+    return groupCode.charAt(0).toUpperCase() + groupCode.slice(1).toLowerCase();
+  }
+
+  // Cuenta cuántos defaults hay en un array de ingredientes
+  countDefaults(ingredients: ProductTreeItem[]): number {
+    return ingredients.filter(i => i.isDefault === 'Y').length;
+  }
+
+  // Verifica si un grupo no tiene default
+  groupMissingDefault(ingredients: ProductTreeItem[]): boolean {
+    return this.countDefaults(ingredients) === 0;
+  }
+
+  // Verifica si un grupo tiene múltiples defaults
+  groupHasMultipleDefaults(ingredients: ProductTreeItem[]): boolean {
+    return this.countDefaults(ingredients) > 1;
   }
 
   removeIngredient(ingredientIndex: number) {

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, catchError, of } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { API_CONFIG } from '../../core/config/api.config';
-import { Size } from '../products/variants/model/size.model';
+import { Size } from '../products/product/model/size.model';
 
 /**
  * Servicio API para gestión de Tamaños (OSZC)
